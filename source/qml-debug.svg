@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   id="svg2"
+   version="1.1"
+   viewBox="0 0 462 470.43671"
+   height="470.43671pt"
+   width="462pt">
+  <metadata
+     id="metadata20">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs18" />
+  <path
+     style="fill:#41cd52"
+     id="path6"
+     d="M 63.5,0 H 462 V 274.79 L 397.61,339 H 0 V 63.390001 C 21.08,42.180001 42.34,21.13 63.5,0 Z" />
+  <g
+     id="flowRoot815"
+     style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:40px;line-height:1.25;font-family:'Titillium Web';-inkscape-font-specification:'Titillium Web Semi-Bold';letter-spacing:0px;word-spacing:0px;display:inline;fill:#ffffff;fill-opacity:1;stroke:none"
+     transform="matrix(0.75,0,0,0.75,-3.10625,-61.51413)"
+     aria-label="QML">
+    <path
+       id="path1478"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:266.66665649px;font-family:'Titillium Web';-inkscape-font-specification:'Titillium Web Semi-Bold'"
+       d="m 130.56041,399.61884 q -41.599995,0 -58.133328,-22.4 -16.266666,-22.4 -16.266666,-70.66666 0,-48.53333 16.533333,-72 16.799999,-23.46667 57.866661,-23.46667 41.06667,0 57.6,23.46667 16.53333,23.2 16.53333,71.73333 0,32 -6.93333,51.73333 -6.66667,19.73333 -22.13333,30.13333 l 22.4,36 -27.46667,12.8 -23.73333,-38.93333 q -5.06667,1.6 -16.26667,1.6 z M 95.893748,358.28551 q 9.066662,15.46666 34.666662,15.46666 25.6,0 34.4,-15.2 9.06667,-15.46666 9.06667,-51.99999 0,-36.53334 -9.33333,-53.06667 -9.06667,-16.53333 -34.13334,-16.53333 -25.06666,0 -34.399995,16.53333 -9.333333,16.53333 -9.333333,52.8 0,36.26667 9.066666,52 z" />
+    <path
+       id="path1480"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:266.66665649px;font-family:'Titillium Web';-inkscape-font-specification:'Titillium Web Semi-Bold'"
+       d="M 239.16042,396.68551 V 214.01885 h 51.46666 l 40.8,142.66666 40.8,-142.66666 h 51.73333 V 396.68551 H 394.09374 V 246.81885 h -4 l -43.19999,142.39999 h -30.93334 l -43.2,-142.39999 h -4 v 149.86666 z" />
+    <path
+       id="path1482"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:266.66665649px;font-family:'Titillium Web';-inkscape-font-specification:'Titillium Web Semi-Bold'"
+       d="M 568.12291,396.68551 H 465.72292 V 214.01885 h 29.59999 v 156.26666 h 72.8 z" />
+  </g>
+  <path
+     id="path6-1"
+     d="m 0,339 0.14434472,131.43671 c 131.59439528,-1e-5 265.04495528,0 396.63935528,0 21.07227,-21.01303 44.14404,-43.15105 65.21631,-64.16407 L 462,274.79 397.61,339 Z"
+     style="display:inline;fill:#09102b;fill-opacity:1;stroke-width:0.99999994" />
+  <g
+     id="flowRoot815-4"
+     style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:96px;line-height:1.25;font-family:'Titillium Web';-inkscape-font-specification:'Titillium Web Semi-Bold';text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;display:inline;fill:#ffffff;fill-opacity:1;stroke:none"
+     transform="matrix(0.75,0,0,0.75,-29.67588,150.88284)"
+     aria-label="Debug">
+    <path
+       id="path1485"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:120px;font-family:'Titillium Web';-inkscape-font-specification:'Titillium Web Semi-Bold';text-align:center;text-anchor:middle"
+       d="m 218.21395,377.49598 h -28.44 v -82.2 h 28.44 q 18.96,0 25.92,9.6 6.96,9.6 6.96,30.12 0,10.44 -1.44,17.76 -1.32,7.2 -4.8,13.08 -6.84,11.64 -26.64,11.64 z m 19.08,-42.48 q 0,-14.88 -3.72,-21.48 -3.72,-6.6 -15.36,-6.6 h -15.12 v 58.8 h 15.12 q 11.88,0 15.84,-8.76 1.92,-4.44 2.52,-9.48 0.72,-5.04 0.72,-12.48 z" />
+    <path
+       id="path1487"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:120px;font-family:'Titillium Web';-inkscape-font-specification:'Titillium Web Semi-Bold';text-align:center;text-anchor:middle"
+       d="m 307.80895,366.69598 3.36,-0.36 0.24,9.72 q -13.68,2.76 -24.24,2.76 -13.32,0 -19.2,-7.32 -5.76,-7.32 -5.76,-23.4 0,-31.92 26.04,-31.92 25.2,0 25.2,27.48 l -0.84,9.36 h -37.2 q 0.12,7.44 3.24,10.92 3.12,3.48 11.64,3.48 8.52,0 17.52,-0.72 z m -7.2,-23.76 q 0,-8.88 -2.88,-12.36 -2.76,-3.6 -9.48,-3.6 -6.72,0 -9.84,3.72 -3,3.72 -3.12,12.24 z" />
+    <path
+       id="path1489"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:120px;font-family:'Titillium Web';-inkscape-font-specification:'Titillium Web Semi-Bold';text-align:center;text-anchor:middle"
+       d="m 353.98645,316.17598 q 12.36,0 17.76,6.96 5.52,6.84 5.52,24.36 0,17.52 -6.48,24.48 -6.48,6.84 -22.8,6.84 -5.64,0 -17.88,-1.08 l -4.08,-0.36 v -84.84 h 12.96 v 27.24 q 8.28,-3.6 15,-3.6 z m -6,51 q 9.6,0 12.72,-4.44 3.24,-4.56 3.24,-15.36 0,-10.8 -2.76,-15.12 -2.64,-4.44 -8.76,-4.44 -5.76,0 -11.52,1.8 l -1.92,0.6 v 36.48 q 6.6,0.48 9,0.48 z" />
+    <path
+       id="path1491"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:120px;font-family:'Titillium Web';-inkscape-font-specification:'Titillium Web Semi-Bold';text-align:center;text-anchor:middle"
+       d="m 426.6052,317.49598 h 12.96 v 60 h -12.96 v -3.72 q -8.76,5.04 -16.2,5.04 -12.36,0 -16.56,-6.6 -4.2,-6.72 -4.2,-23.4 v -31.32 h 13.08 v 31.44 q 0,10.8 1.8,14.52 1.8,3.72 8.4,3.72 6.48,0 11.88,-2.4 l 1.8,-0.72 z" />
+    <path
+       id="path1493"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:120px;font-family:'Titillium Web';-inkscape-font-specification:'Titillium Web Semi-Bold';text-align:center;text-anchor:middle"
+       d="m 507.84145,385.65598 q 0,19.68 -28.44,19.68 -13.68,0 -20.28,-3.72 -6.6,-3.72 -6.6,-13.56 0,-4.44 2.16,-7.68 2.16,-3.12 6.96,-6.84 -3.96,-2.64 -3.96,-8.76 0,-2.4 3.24,-7.8 l 1.08,-1.8 q -8.64,-5.16 -8.64,-18 0,-10.8 6.48,-15.84 6.48,-5.04 17.52,-5.04 5.28,0 10.44,1.2 l 1.8,0.36 18.6,-0.48 v 10.56 l -9.96,-0.6 q 3.24,4.2 3.24,9.84 0,11.76 -6,16.32 -5.88,4.44 -18.48,4.44 -3.12,0 -5.28,-0.48 -1.68,4.08 -1.68,6.36 0,2.16 2.16,3 2.28,0.84 10.8,0.96 14.28,0.12 19.56,3.84 5.28,3.72 5.28,14.04 z m -42.48,1.2 q 0,4.2 3.36,6 3.36,1.8 11.52,1.8 14.52,0 14.52,-8.28 0,-4.68 -2.64,-6 -2.52,-1.2 -10.2,-1.32 l -11.76,-0.72 q -2.64,2.16 -3.72,3.96 -1.08,1.92 -1.08,4.56 z m 0.96,-49.68 q 0,5.52 2.64,8.16 2.64,2.52 8.52,2.52 5.88,0 8.4,-2.52 2.64,-2.64 2.64,-8.16 0,-5.52 -2.64,-8.04 -2.64,-2.64 -8.52,-2.64 -11.04,0 -11.04,10.68 z" />
+  </g>
+</svg>
