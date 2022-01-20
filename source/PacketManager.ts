@@ -2,8 +2,7 @@ import { Log } from './Log';
 import { Packet } from './Packet';
 import net from "net";
 import PromiseSocket from "promise-socket";
-import { toHexString } from "./Utilities";
-import { buffer } from 'stream/consumers';
+import * as BufferHexDump from "buffer-hex-dump";
 
 type PacketHandlerCallback = (header : string, data : Packet) => boolean
 
@@ -27,7 +26,15 @@ export class PacketManager
     private onData(data : Buffer) : void
     {
         Log.trace("PacketManager.onData()", [data]);
-        Log.debug(() => { return "Raw Data Received:\n" + toHexString(data); + "\n" });
+        Log.debug(() => {
+            const options : BufferHexDump.Options =
+            {
+                offsetStyle: {
+                    foregroundColor: BufferHexDump.Color.green
+                }
+            };
+            return "Raw Data Received:\n" + BufferHexDump.dump(data, undefined, undefined, options) + "\n";
+         });
         this.receivePacket(data);
     }
 
@@ -139,7 +146,16 @@ export class PacketManager
         {
             let count = await this.socket.write(buffer);
 
-            Log.debug(() => { return "Raw Data Transfered:\n" + toHexString(buffer); + "\n" });
+            Log.debug(() => {
+                const options : BufferHexDump.Options =
+                {
+                    offsetStyle: {
+                        foregroundColor: BufferHexDump.Color.red
+                    }
+                };
+
+                return "Raw Data Transfered:\n" + BufferHexDump.dump(buffer, undefined, undefined, options); + "\n"
+            });
 
             if (count == buffer.length)
                 return;

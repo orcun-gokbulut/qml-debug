@@ -13,10 +13,10 @@
         "url": "https://www.github.com/orcun-gokbulut"
     },
     "keywords": [
-		"QML",
-		"Qt",
-		"Debugger"
-	],
+        "QML",
+        "Qt",
+        "Debugger"
+    ],
     "license": "GPL-3.0",
     "main": "build/Main.js",
     "scripts": {
@@ -29,6 +29,7 @@
         "dist-clean": "rm -rf package-lock.json node_modules build/*"
     },
     "dependencies": {
+        "buffer-hex-dump": "buffer-hex-dump",
         "colors": "^1.4.0",
         "promise-socket": "^7.0.0"
     },

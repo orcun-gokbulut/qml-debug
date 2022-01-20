@@ -3,7 +3,7 @@ require('source-map-support').install();
 import { Log, LogLevel } from './Log';
 import { Packet } from './Packet';
 import { PacketManager } from './PacketManager';
-import { toHexString } from './Utilities';
+import * as BufferHexDump from 'buffer-hex-dump';
 
 async function main() : Promise<void>
 {
@@ -28,7 +28,7 @@ async function main() : Promise<void>
             Log.trace("PacketHandler.*", []);
 
             console.log("Unhandled packet:");
-            console.log(toHexString(packet.getData()));
+            console.log(BufferHexDump.dump(packet.getData()));
 
             return true;
         }
