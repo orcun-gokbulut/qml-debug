@@ -18,18 +18,18 @@
         "Debugger"
     ],
     "license": "GPL-3.0",
-    "main": "build/Main.js",
+    "main": "build/main.js",
     "scripts": {
         "bootstrap": "npm install --production",
         "bootstrap-dev": "npm install",
         "build": "tsc",
         "prepare": "npm run build",
-        "start": "node build/Main.js",
+        "start": "node build/main.js",
         "clean": "rm -rf build/*",
         "dist-clean": "rm -rf package-lock.json node_modules build/*"
     },
     "dependencies": {
-        "buffer-hex-dump": "buffer-hex-dump",
+        "buffer-hex-dump": "../buffer-hex-dump",
         "colors": "^1.4.0",
         "promise-socket": "^7.0.0"
     },

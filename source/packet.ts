@@ -242,6 +242,14 @@ export class Packet
         return JSON.parse(jsonString);
     }
 
+    public readSubPacket() : Packet
+    {
+        const size = this.readUInt32BE();
+        const packet = new Packet(this.data.slice(this.readOffset, this.readOffset + size));
+        this.readOffset += size;
+        return packet;
+    }
+
     public appendUInt8(value : number) : void
     {
         const offset = this.size;
@@ -362,8 +370,8 @@ export class Packet
     public appendStringUTF8(value : string) : void
     {
         const offset = this.size;
-        this.expand(4 + value.length + 1);
-        this.data.writeUInt32LE(4 + value.length, offset);
+        this.expand(4 + value.length);
+        this.data.writeUInt32BE(value.length, offset);
         this.data.write(value, offset + 4);
     }
 
@@ -383,16 +391,31 @@ export class Packet
             appendFunction.call(this, value[i]);
     }
 
-    public appendJsonUtf8(value : any) : void
+    public appendJsonUTF8(value : any) : void
     {
         const jsonString = JSON.stringify(value);
         this.appendStringUTF8(jsonString);
     }
 
-    public appendJsonUtf16(value : any) : void
+    public appendJsonUTF16(value : any) : void
     {
         const jsonString = JSON.stringify(value);
         this.appendStringUTF16(jsonString);
+    }
+
+    public appendSubPacket(packet : Packet) : void
+    {
+        this.appendUInt32BE(packet.getSize());
+        const offset = this.size;
+        this.expand(packet.getSize());
+        packet.getData().copy(this.data, offset);
+    }
+
+    public combine(packet : Packet)
+    {
+        const offset = this.size;
+        this.expand(packet.getSize());
+        packet.getData().copy(this.data, offset);
     }
 
     constructor(data? : Buffer, size? : number, offset? : number)

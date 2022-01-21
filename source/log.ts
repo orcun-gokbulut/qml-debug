@@ -4,6 +4,7 @@ export enum LogLevel
 {
     Debug,
     Trace,
+    Detail,
     Info,
     Warning,
     Error,
@@ -62,6 +63,10 @@ export class Log
                 output += colors.reset("Info");
                 break;
 
+            case LogLevel.Detail:
+                output += colors.reset("Detail");
+                break;
+
             case LogLevel.Trace:
                 output += colors.reset("Trace");
                 break;
@@ -79,7 +84,7 @@ export class Log
     public static debug(closure : string | (() => string))
     {
         const log = Log.instance();
-        if (!log.enabled || log.level > LogLevel.Trace)
+        if (!log.enabled || log.level > LogLevel.Debug)
             return;
 
         if (typeof closure == "function")
@@ -133,6 +138,18 @@ export class Log
         }
 
         Log.instance().log(LogLevel.Trace, fn + "(" + traceText + ")");
+    }
+
+    public static detail(closure : string | (() => string))
+    {
+        const log = Log.instance();
+        if (!log.enabled || log.level > LogLevel.Detail)
+            return;
+
+        if (typeof closure == "function")
+            log.log(LogLevel.Detail, closure());
+        else
+            log.log(LogLevel.Detail, closure);
     }
 
     public static info(text : string)

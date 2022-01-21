@@ -8,7 +8,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/source/Main.ts",
+            "program": "${workspaceFolder}/source/main.ts",
             "outFiles": [
                 "${workspaceFolder}/build/**/*.js"
             ],

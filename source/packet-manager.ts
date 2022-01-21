@@ -1,5 +1,5 @@
-import { Log } from './Log';
-import { Packet } from './Packet';
+import { Log } from './log';
+import { Packet } from './packet';
 import net from "net";
 import PromiseSocket from "promise-socket";
 import * as BufferHexDump from "buffer-hex-dump";
@@ -115,18 +115,18 @@ export class PacketManager
 
         let targetSize : number;
         if (this.receiveBuffer.length > 4)
-            targetSize = this.receiveBuffer.readUInt32LE() - 4;
+            targetSize = this.receiveBuffer.readUInt32LE();
         else
             targetSize = Number.MAX_SAFE_INTEGER;
 
         if (this.receiveBuffer.length == targetSize)
         {
-            this.dispatchPacket(new Packet(this.receiveBuffer, targetSize, 4));
+            this.dispatchPacket(new Packet(this.receiveBuffer, targetSize - 4, 4));
             this.receiveBuffer = Buffer.alloc(0);
         }
         else if (this.receiveBuffer.length > targetSize)
         {
-            this.dispatchPacket(new Packet(this.receiveBuffer, targetSize, 4));
+            this.dispatchPacket(new Packet(this.receiveBuffer, targetSize - 4, 4));
             this.receiveBuffer = this.receiveBuffer.slice(targetSize, this.receiveBuffer.length)
         }
     }
