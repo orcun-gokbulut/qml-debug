@@ -6,12 +6,12 @@ export class Packet
 
     public setData(data : Buffer, size? : number, offset? : number)
     {
-        if (size != undefined && offset != undefined)
+        if (size !== undefined && offset !== undefined)
         {
             this.data = data.slice(offset, offset + size);
             this.size = size;
         }
-        else if (size != undefined)
+        else if (size !== undefined)
         {
             this.data = data.slice(0, size);
             this.size = size;
@@ -52,7 +52,7 @@ export class Packet
 
     private expand(size : number)
     {
-        this.resize(this.size + size)
+        this.resize(this.size + size);
     }
 
     public readSeek(offset : number) : void
@@ -191,7 +191,7 @@ export class Packet
     {
         const value = this.data.readUInt8(this.readOffset);
         this.readOffset += 8;
-        return (value == 0 ? false : true);
+        return (value === 0 ? false : true);
     }
 
     public readStringUTF8() : string
@@ -426,7 +426,7 @@ export class Packet
 
     constructor(data? : Buffer, size? : number, offset? : number)
     {
-        if (data != undefined)
+        if (data !== undefined)
             this.setData(data, size, offset);
     }
 };

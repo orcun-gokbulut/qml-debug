@@ -32,7 +32,7 @@ export class QmlDebugger
         for (let i = 0; i < request.length; i++)
         {
             let current = this.awaitingRequests[i];
-            if (current.seqId == seqId)
+            if (current.seqId === seqId)
             {
                 this.awaitingRequests = this.awaitingRequests.splice(i, 1);
                 clearTimeout(current.timerId);

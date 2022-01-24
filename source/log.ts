@@ -2,14 +2,14 @@ import * as colors from 'colors/safe';
 
 export enum LogLevel
 {
-    Debug,
-    Trace,
-    Detail,
-    Info,
-    Warning,
-    Error,
-    CriticalError,
-    Success,
+    debug,
+    trace,
+    detail,
+    info,
+    warning,
+    error,
+    criticalError,
+    success,
 };
 
 export class Log
@@ -17,14 +17,14 @@ export class Log
     private static instance_ = new Log();
 
     public enabled = true;
-    public level = LogLevel.Info;
+    public level = LogLevel.info;
 
     private className(depth = 4)
     {
         const error = new Error();
 
-        if (error.stack != null)
-            return ((error.stack).split("at ")[4]).trim().split(" (")[0];
+        if (error.stack !== null)
+            return ((error.stack!).split("at ")[4]).trim().split(" (")[0];
         else
             return "";
     }
@@ -34,7 +34,7 @@ export class Log
         if (!this.enabled && level < this.level)
             return;
 
-        this.logConsole((sender != undefined ? sender : this.className()), level, text);
+        this.logConsole((sender !== undefined ? sender : this.className()), level, text);
     }
 
     public logConsole(fn : string, level : LogLevel, text : string)
@@ -42,36 +42,36 @@ export class Log
         let output = colors.white("[" + fn + "] ");
         switch (level)
         {
-            case LogLevel.Success:
+            case LogLevel.success:
                 output += colors.green("Success");
                 break;
 
-            case LogLevel.CriticalError:
+            case LogLevel.criticalError:
                 output += colors.red("CRITICAL ERROR");
                 break;
 
-            case LogLevel.Error:
+            case LogLevel.error:
                 output += colors.red("Error");
                 break;
 
-            case LogLevel.Warning:
+            case LogLevel.warning:
                 output += colors.yellow("Warning");
                 break;
 
             default:
-            case LogLevel.Info:
+            case LogLevel.info:
                 output += colors.reset("Info");
                 break;
 
-            case LogLevel.Detail:
+            case LogLevel.detail:
                 output += colors.reset("Detail");
                 break;
 
-            case LogLevel.Trace:
+            case LogLevel.trace:
                 output += colors.reset("Trace");
                 break;
 
-            case LogLevel.Debug:
+            case LogLevel.debug:
                 output += colors.reset("Debug");
                 break;
         }
@@ -84,97 +84,103 @@ export class Log
     public static debug(closure : string | (() => string))
     {
         const log = Log.instance();
-        if (!log.enabled || log.level > LogLevel.Debug)
+        if (!log.enabled || log.level > LogLevel.debug)
             return;
 
-        if (typeof closure == "function")
-            log.log(LogLevel.Debug, closure());
+        if (typeof closure === "function")
+            log.log(LogLevel.debug, closure());
         else
-            log.log(LogLevel.Debug, closure);
+            log.log(LogLevel.debug, closure);
     }
 
     public static trace(fn : string, args : any)
     {
         const log = Log.instance();
-        if (!log.enabled || log.level > LogLevel.Trace)
+        if (!log.enabled || log.level > LogLevel.trace)
             return;
 
         let traceText = "";
         for (let i = 0; i < args.length; i++)
         {
             const current = args[i];
-            if (typeof current == "undefined")
+            if (typeof current === "undefined")
             {
                 traceText += " ";
             }
-            else if (typeof current == "number")
+            else if (typeof current === "number")
             {
                 traceText += "" + (current as number);
             }
-            else if (typeof current == "bigint")
+            else if (typeof current === "bigint")
             {
                 traceText += "" + (current as bigint);
             }
-            else if (typeof current == "string")
+            else if (typeof current === "string")
             {
                 traceText += "\"" + (current as string) + "\"";
             }
-            else if (typeof current == "boolean")
+            else if (typeof current === "boolean")
             {
                 traceText += (current === false ? "false" : "true");
             }
-            else if (typeof current == "function")
+            else if (typeof current === "function")
             {
                 traceText += ("func()");
             }
-            else if (typeof current == "object")
+            else if (typeof current === "object")
             {
-                if (current == null)
+                if (current === null)
                     traceText += "null";
+                else
+                    traceText += "object";
+            }
+            else
+            {
+                traceText += "UNKNOWN";
             }
 
-            if (i != args.length - 1)
+            if (i !== args.length - 1)
                 traceText += ", ";
         }
 
-        Log.instance().log(LogLevel.Trace, fn + "(" + traceText + ")");
+        Log.instance().log(LogLevel.trace, fn + "(" + traceText + ")");
     }
 
     public static detail(closure : string | (() => string))
     {
         const log = Log.instance();
-        if (!log.enabled || log.level > LogLevel.Detail)
+        if (!log.enabled || log.level > LogLevel.detail)
             return;
 
-        if (typeof closure == "function")
-            log.log(LogLevel.Detail, closure());
+        if (typeof closure === "function")
+            log.log(LogLevel.detail, closure());
         else
-            log.log(LogLevel.Detail, closure);
+            log.log(LogLevel.detail, closure);
     }
 
     public static info(text : string)
     {
-        Log.instance().log(LogLevel.Info, text);
+        Log.instance().log(LogLevel.info, text);
     }
 
     public static warning(text : string)
     {
-        Log.instance().log(LogLevel.Warning, text);
+        Log.instance().log(LogLevel.warning, text);
     }
 
     public static error(text : string)
     {
-        Log.instance().log(LogLevel.Error, text);
+        Log.instance().log(LogLevel.error, text);
     }
 
     public static critical(text : string)
     {
-        Log.instance().log(LogLevel.CriticalError, text);
+        Log.instance().log(LogLevel.criticalError, text);
     }
 
     public static success(text : string)
     {
-        Log.instance().log(LogLevel.Success, text);
+        Log.instance().log(LogLevel.success, text);
     }
 
     public static instance() : Log

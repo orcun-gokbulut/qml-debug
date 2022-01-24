@@ -18,7 +18,7 @@ function nextQmlSeq() : number
 async function main() : Promise<void>
 {
     Log.instance().enabled = true;
-    Log.instance().level = LogLevel.Debug;
+    Log.instance().level = LogLevel.debug;
 
     Log.trace("main", []);
 
@@ -29,7 +29,7 @@ async function main() : Promise<void>
             Log.trace("PacketHandler.QDeclarativeDebugClient", []);
 
             let op = packet.readInt32BE();
-            if (op == 0)
+            if (op === 0)
             {
                 let protocolVersion = packet.readUInt32BE();
                 let plugins = packet.readArray(Packet.prototype.readStringUTF16);
@@ -54,10 +54,10 @@ async function main() : Promise<void>
                     }
                 );
 
-                if (protocolVersion != 1)
+                if (protocolVersion !== 1)
                     Log.warning("Unknwon protocol version. Received Protocol Version: " + protocolVersion);
 
-                if (datastreamVersion != 12)
+                if (datastreamVersion !== 12)
                     Log.warning("Unknown data stream version. Received Data Stream Version: " + datastreamVersion);
 
                 let debugMessagesFound = false;
@@ -66,11 +66,11 @@ async function main() : Promise<void>
                 for (let i = 0; i < plugins.length; i++)
                 {
                     const currentPlugin = plugins[i];
-                    if (currentPlugin == "DebugMessages")
+                    if (currentPlugin === "DebugMessages")
                         debugMessagesFound = true;
-                    else if (currentPlugin == "V8Debugger")
+                    else if (currentPlugin === "V8Debugger")
                         v8DebuggerFound = true;
-                    else if (currentPlugin == "QmlDebugger")
+                    else if (currentPlugin === "QmlDebugger")
                         qmlDebugerFound = true;
                 }
 
@@ -121,13 +121,13 @@ async function main() : Promise<void>
 
             return true;
         }
-    )
+    );
 
     const qmlDebugger = new QmlDebugger(pm);
     const qDebugMessages = new QDebugMessages(pm);
 
     await pm.connect();
-    let packet = new Packet()
+    let packet = new Packet();
     packet.appendStringUTF16("QDeclarativeDebugServer");
     packet.appendInt32BE(0); // OP
     packet.appendInt32BE(1); // Version

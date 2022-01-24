@@ -68,7 +68,7 @@ export class PacketManager
     {
         Log.trace("PacketManager.disconnect", []);
 
-        if (this.socket == null)
+        if (this.socket === null)
             return;
 
         Log.info("Disconnecting from " + this.host + ":" + this.port + "...");
@@ -96,7 +96,7 @@ export class PacketManager
 
         for (let current of this.packetHandlers)
         {
-            if (current.name != header || current.name == "*")
+            if (current.name !== header || current.name === "*")
                 continue;
 
             let result = current.callback(header, packet);
@@ -119,7 +119,7 @@ export class PacketManager
         else
             targetSize = Number.MAX_SAFE_INTEGER;
 
-        if (this.receiveBuffer.length == targetSize)
+        if (this.receiveBuffer.length === targetSize)
         {
             this.dispatchPacket(new Packet(this.receiveBuffer, targetSize - 4, 4));
             this.receiveBuffer = Buffer.alloc(0);
@@ -127,7 +127,7 @@ export class PacketManager
         else if (this.receiveBuffer.length > targetSize)
         {
             this.dispatchPacket(new Packet(this.receiveBuffer, targetSize - 4, 4));
-            this.receiveBuffer = this.receiveBuffer.slice(targetSize, this.receiveBuffer.length)
+            this.receiveBuffer = this.receiveBuffer.slice(targetSize, this.receiveBuffer.length);
         }
     }
 
@@ -135,7 +135,7 @@ export class PacketManager
     {
         Log.trace("PacketManager.writePacket", [packet]);
 
-        if (this.socket == null)
+        if (this.socket === null)
             throw new Error("PacketManager::writePacket: Uninitialized connection.");
 
         let buffer = Buffer.alloc(4);
@@ -154,10 +154,10 @@ export class PacketManager
                     }
                 };
 
-                return "Raw Data Transfered:\n" + BufferHexDump.dump(buffer, undefined, undefined, options); + "\n"
+                return "Raw Data Transfered:\n" + BufferHexDump.dump(buffer, undefined, undefined, options); + "\n";
             });
 
-            if (count == buffer.length)
+            if (count === buffer.length)
                 return;
 
             buffer = buffer.slice(count, buffer.length - count);
@@ -168,7 +168,7 @@ export class PacketManager
     {
         Log.trace("PacketManager.process", []);
 
-        if (this.nodeSocket == null)
+        if (this.nodeSocket === null)
             throw new Error("PacketManager::process: Uninitialized connection.");
 
         return new Promise(
