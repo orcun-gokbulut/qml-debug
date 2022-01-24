@@ -1,4 +1,4 @@
-import colors from 'colors/safe';
+import * as colors from 'colors/safe';
 
 export enum LogLevel
 {
@@ -29,7 +29,7 @@ export class Log
             return "";
     }
 
-    private log(level : LogLevel, text : string, sender? : string)
+    private log(level : LogLevel, text : string, sender? : string) : void
     {
         if (!this.enabled && level < this.level)
             return;

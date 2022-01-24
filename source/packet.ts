@@ -199,6 +199,9 @@ export class Packet
         const len = this.data.readUInt32BE(this.readOffset);
         this.readOffset += 4;
 
+        if (len === 0xFFFFFFFF)
+            return "";
+
         const value = this.data.toString("utf-8", this.readOffset, this.readOffset + len);
         this.readOffset += len;
 
@@ -209,6 +212,9 @@ export class Packet
     {
         const len = this.data.readUInt32BE(this.readOffset);
         this.readOffset += 4;
+
+        if (len === 0xFFFFFFFF)
+            return "";
 
         const valueBuffer = this.data.slice(this.readOffset, this.readOffset + len);
         const valueString = valueBuffer.swap16().toString("ucs-2");

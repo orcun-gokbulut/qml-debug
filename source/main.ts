@@ -1,6 +1,5 @@
 import { QDebugMessages } from './debug-messages';
 import { QmlDebugger } from './qml-debugger';
-require('source-map-support').install();
 
 import { Log, LogLevel } from './log';
 import { Packet } from './packet';

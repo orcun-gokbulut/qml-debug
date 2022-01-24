@@ -1,10 +1,10 @@
 import { Log } from './log';
 import { Packet } from './packet';
-import net from "net";
+import { Socket } from "net";
 import PromiseSocket from "promise-socket";
 import * as BufferHexDump from "buffer-hex-dump";
 
-type PacketHandlerCallback = (header : string, data : Packet) => boolean
+type PacketHandlerCallback = (header : string, data : Packet) => boolean;
 
 export interface PacketHandler
 {
@@ -14,8 +14,8 @@ export interface PacketHandler
 
 export class PacketManager
 {
-    private nodeSocket : net.Socket | null = null;
-    private socket : PromiseSocket<net.Socket> | null = null;
+    private nodeSocket : Socket | null = null;
+    private socket : PromiseSocket<Socket> | null = null;
     private receiveBuffer = Buffer.alloc(0);
     private packetHandlers : PacketHandler[] = [];
 
@@ -55,7 +55,7 @@ export class PacketManager
     {
         Log.trace("connect", []);
 
-        this.nodeSocket = new net.Socket();
+        this.nodeSocket = new Socket();
         this.socket = new PromiseSocket(this.nodeSocket);
         this.nodeSocket.on("data", (data : Buffer) => { this.onData(data); });
 
