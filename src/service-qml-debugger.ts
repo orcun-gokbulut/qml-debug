@@ -1,7 +1,7 @@
-import { request } from 'http';
-import { Log } from './log';
-import { Packet } from './packet';
-import { PacketManager } from './packet-manager';
+import Log  from './log';
+import Packet  from './packet';
+import PacketManager from './packet-manager';
+
 interface QmlEngine
 {
     name : string;
@@ -16,7 +16,7 @@ interface AwaitingRequest
     timerId : NodeJS.Timeout;
 };
 
-export class QmlDebugger
+export default class ServiceQmlDebugger
 {
     private seqId = 0;
     private packetManager? : PacketManager;
@@ -29,7 +29,7 @@ export class QmlDebugger
         let operation = packet.readStringUTF8();
         let seqId = packet.readInt32BE();
 
-        for (let i = 0; i < request.length; i++)
+        for (let i = 0; i < this.awaitingRequests.length; i++)
         {
             let current = this.awaitingRequests[i];
             if (current.seqId === seqId)

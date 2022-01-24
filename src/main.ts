@@ -1,19 +1,13 @@
-import { QDebugMessages } from './debug-messages';
-import { QmlDebugger } from './qml-debugger';
+import Log, { LogLevel } from '@qml-debug/log';
+import Packet from '@qml-debug/packet';
+import PacketManager from '@qml-debug/packet-manager';
 
-import { Log, LogLevel } from './log';
-import { Packet } from './packet';
-import { PacketManager } from './packet-manager';
+import ServiceDebugMessages from '@qml-debug/service-debug-messages';
+import ServiceQmlDebugger from '@qml-debug/service-qml-debugger';
+
 import * as BufferHexDump from 'buffer-hex-dump';
 
 let nextQmlSeq_ = 0;
-
-function nextQmlSeq() : number
-{
-    const current = nextQmlSeq_;
-    nextQmlSeq_++;
-    return current;
-}
 
 async function main() : Promise<void>
 {
@@ -123,8 +117,8 @@ async function main() : Promise<void>
         }
     );
 
-    const qmlDebugger = new QmlDebugger(pm);
-    const qDebugMessages = new QDebugMessages(pm);
+    const qmlDebugger = new ServiceQmlDebugger(pm);
+    const qDebugMessages = new ServiceDebugMessages(pm);
 
     await pm.connect();
     let packet = new Packet();

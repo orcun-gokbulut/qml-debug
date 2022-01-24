@@ -3,10 +3,17 @@
     "displayName": "QML Debug",
     "description": "Visual Studio Code debugging support for Qt QML language",
     "version": "0.0.1",
+    "icon": "qml-debug.png",
     "author": {
         "name": "Y. Orçun Gökbulut",
         "email": "orcun.gokbulut@gmail.com",
         "url": "https://www.github.com/orcun-gokbulut"
+    },
+    "homepage": "https://github.com/orcun-gokbulut/qml-debug",
+    "bugs":
+    {
+        "url": "https://github.com/orcun-gokbulut/qml-debug/issues",
+        "email": "orcun.gokbulut@gmail.com"
     },
     "repository": {
         "type": "git",
@@ -42,7 +49,7 @@
         ]
   },
     "_moduleAliases": {
-        "@qml-debug": "./source",
+        "@qml-debug": "./src",
         "@qml-debug-root": "."
     },
     "scripts": {
@@ -53,7 +60,7 @@
         "watch": "tsc -watch -p ./",
         "pretest": "npm run compile && npm run lint",
         "test": "node ./out/test/runTest.js",
-        "lint": "eslint source --ext ts",
+        "lint": "eslint ./src --ext ts",
         "compile": "tsc",
         "clean": "rm -rf ./out/* ./dist/*",
         "dist-clean": "rm -rf ./package-lock.json ./node_modules ./out ./dist"

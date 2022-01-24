@@ -12,7 +12,7 @@ export enum LogLevel
     success,
 };
 
-export class Log
+export default class Log
 {
     private static instance_ = new Log();
 

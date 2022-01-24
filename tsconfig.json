@@ -6,7 +6,7 @@
             "ES2020"
         ],
 
-        "rootDir": "./source",
+        "rootDir": "./src",
         "outDir": "./out",
 
         "sourceMap": true,
@@ -15,13 +15,14 @@
 
         "strict": true,
         "noImplicitReturns": true,
+
+        "paths": {
+            "@qml-debug/*": [ "./src/*" ],
+            "@qml-debug-root/*": [ "./*" ],
+        }
     },
-    "paths": {
-		"@qml-debug": [ "./source" ],
-        "@qml-debug-root": [ "." ],
-	},
-	"exclude": [
-		"node_modules",
-		".vscode-test"
-	]
+    "exclude": [
+        "node_modules",
+        ".vscode-test"
+    ]
 }

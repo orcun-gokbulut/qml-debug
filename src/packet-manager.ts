@@ -1,5 +1,6 @@
-import { Log } from './log';
-import { Packet } from './packet';
+import Log from '@qml-debug/log';
+import Packet from '@qml-debug/packet';
+
 import { Socket } from "net";
 import PromiseSocket from "promise-socket";
 import * as BufferHexDump from "buffer-hex-dump";
@@ -12,7 +13,7 @@ export interface PacketHandler
     callback : PacketHandlerCallback;
 }
 
-export class PacketManager
+export default class PacketManager
 {
     private nodeSocket : Socket | null = null;
     private socket : PromiseSocket<Socket> | null = null;

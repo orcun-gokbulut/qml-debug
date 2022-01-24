@@ -1,4 +1,4 @@
-export class Packet
+export default class Packet
 {
     private size : number = 0;
     private data = Buffer.alloc(0);

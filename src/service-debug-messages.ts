@@ -1,8 +1,8 @@
-import { Log } from './log';
-import { Packet } from './packet';
-import { PacketManager } from './packet-manager';
+import Log from '@qml-debug/log';
+import Packet from '@qml-debug/packet';
+import PacketManager from '@qml-debug/packet-manager';
 
-export class QDebugMessages
+export default class ServiceDebugMessages
 {
     private packetManager? : PacketManager;
 
