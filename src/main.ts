@@ -7,8 +7,6 @@ import ServiceQmlDebugger from '@qml-debug/service-qml-debugger';
 
 import * as BufferHexDump from 'buffer-hex-dump';
 
-let nextQmlSeq_ = 0;
-
 async function main() : Promise<void>
 {
     Log.instance().enabled = true;
@@ -16,19 +14,19 @@ async function main() : Promise<void>
 
     Log.trace("main", []);
 
-    let pm = new PacketManager();
+    const pm = new PacketManager();
     pm.registerHandler("QDeclarativeDebugClient",
         (header, packet) : boolean =>
         {
             Log.trace("PacketHandler.QDeclarativeDebugClient", []);
 
-            let op = packet.readInt32BE();
+            const op = packet.readInt32BE();
             if (op === 0)
             {
-                let protocolVersion = packet.readUInt32BE();
-                let plugins = packet.readArray(Packet.prototype.readStringUTF16);
-                let pluginVersions = packet.readArray(Packet.prototype.readDouble);
-                let datastreamVersion = packet.readUInt32BE();
+                const protocolVersion = packet.readUInt32BE();
+                const plugins = packet.readArray(Packet.prototype.readStringUTF16);
+                const pluginVersions = packet.readArray(Packet.prototype.readDouble);
+                const datastreamVersion = packet.readUInt32BE();
 
                 Log.detail(
                     () =>
@@ -121,7 +119,7 @@ async function main() : Promise<void>
     const qDebugMessages = new ServiceDebugMessages(pm);
 
     await pm.connect();
-    let packet = new Packet();
+    const packet = new Packet();
     packet.appendStringUTF16("QDeclarativeDebugServer");
     packet.appendInt32BE(0); // OP
     packet.appendInt32BE(1); // Version
@@ -140,9 +138,13 @@ async function main() : Promise<void>
 }
 
 main()
-    .then(ret => {
-        Log.success("Execution finished.");
-    })
-    .catch(error => {
-        Log.critical("Unhandled exception catched - " + error);
-    });
+    .then(
+        ret =>
+        {
+            Log.success("Execution finished.");
+        })
+    .catch(
+        error =>
+        {
+            Log.critical("Unhandled exception catched - " + error);
+        });

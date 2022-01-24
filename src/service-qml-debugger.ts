@@ -24,14 +24,14 @@ export default class ServiceQmlDebugger
 
     public packetReceived(packet : Packet)
     {
-        Log.trace("QmlDebugger.packetReceived", [packet]);
+        Log.trace("QmlDebugger.packetReceived", [ packet ]);
 
-        let operation = packet.readStringUTF8();
-        let seqId = packet.readInt32BE();
+        const operation = packet.readStringUTF8();
+        const seqId = packet.readInt32BE();
 
         for (let i = 0; i < this.awaitingRequests.length; i++)
         {
-            let current = this.awaitingRequests[i];
+            const current = this.awaitingRequests[i];
             if (current.seqId === seqId)
             {
                 this.awaitingRequests = this.awaitingRequests.splice(i, 1);
@@ -52,23 +52,23 @@ export default class ServiceQmlDebugger
 
     private makeRequest(operation : string, data? : Packet) : Promise<Packet>
     {
-        Log.trace("QmlDebugger.makeRequest", [operation, data]);
+        Log.trace("QmlDebugger.makeRequest", [ operation, data ]);
 
         return new Promise<Packet>(
             (resolve, reject) =>
             {
-                let seqId = this.nextSeqId();
-                let packet = new Packet();
+                const seqId = this.nextSeqId();
+                const packet = new Packet();
                 packet.appendStringUTF8(operation);
                 packet.appendUInt32BE(seqId);
                 if (data !== undefined)
                     packet.combine(data);
 
-                let envelopPacket = new Packet();
+                    const envelopPacket = new Packet();
                 envelopPacket.appendStringUTF16("QmlDebugger");
                 envelopPacket.appendSubPacket(packet);
 
-                let timerId = setTimeout(
+                const timerId = setTimeout(
                     () =>
                     {
                         reject(new Error("Request timed out. Sequence Id: " + seqId));
@@ -96,8 +96,8 @@ export default class ServiceQmlDebugger
 
         const packet = await this.makeRequest("LIST_ENGINES");
 
-        let count = packet.readUInt32BE();
-        let engines : QmlEngine[] = [];
+        const count = packet.readUInt32BE();
+        const engines : QmlEngine[] = [];
         for (let i = 0; i < count; i++)
         {
             const name = packet.readStringUTF8();
@@ -115,13 +115,13 @@ export default class ServiceQmlDebugger
 
     public constructor(packetManager : PacketManager)
     {
-        Log.trace("QmlDebugger.initialize", [packetManager]);
+        Log.trace("QmlDebugger.initialize", [ packetManager ]);
 
         this.packetManager = packetManager;
         this.packetManager.registerHandler("QmlDebugger",
             (header, packet) : boolean =>
             {
-                let qmlDebuggerPacket = packet.readSubPacket();
+                const qmlDebuggerPacket = packet.readSubPacket();
                 this.packetReceived(qmlDebuggerPacket);
 
                 return true;

@@ -26,16 +26,20 @@ export default class PacketManager
 
     private onData(data : Buffer) : void
     {
-        Log.trace("PacketManager.onData()", [data]);
-        Log.debug(() => {
-            const options : BufferHexDump.Options =
+        Log.trace("PacketManager.onData()", [ data ]);
+        Log.debug(
+            () =>
             {
-                offsetStyle: {
-                    foregroundColor: BufferHexDump.Color.green
-                }
-            };
-            return "Raw Data Received:\n" + BufferHexDump.dump(data, undefined, undefined, options) + "\n";
-         });
+                const options : BufferHexDump.Options =
+                {
+                    offsetStyle:
+                    {
+                        foregroundColor: BufferHexDump.Color.green
+                    }
+                };
+                return "Raw Data Received:\n" + BufferHexDump.dump(data, undefined, undefined, options) + "\n";
+            }
+        );
         this.receivePacket(data);
     }
 
@@ -48,10 +52,11 @@ export default class PacketManager
 
     private onError(err : any) : void
     {
-        Log.trace("PacketManager.onError", [err]);
+        Log.trace("PacketManager.onError", [ err ]);
 
         Log.error("Socket Error - " + err);
     }
+
     public async connect() : Promise<void>
     {
         Log.trace("connect", []);
@@ -84,23 +89,23 @@ export default class PacketManager
 
     public registerHandler(header : string, callback : PacketHandlerCallback)
     {
-        Log.trace("PacketManager.registerHandler", [header, callback]);
+        Log.trace("PacketManager.registerHandler", [ header, callback ]);
 
-        this.packetHandlers.push({ name: header, callback: callback});
+        this.packetHandlers.push({ name: header, callback: callback });
     }
 
     private dispatchPacket(packet : Packet)
     {
-        Log.trace("PacketManager.dispatchPacket", [packet]);
+        Log.trace("PacketManager.dispatchPacket", [ packet ]);
 
         const header = packet.readStringUTF16();
 
-        for (let current of this.packetHandlers)
+        for (const current of this.packetHandlers)
         {
             if (current.name !== header || current.name === "*")
                 continue;
 
-            let result = current.callback(header, packet);
+            const result = current.callback(header, packet);
             if (!result)
                 continue;
 
@@ -110,9 +115,9 @@ export default class PacketManager
 
     public receivePacket(buffer : Buffer) : void
     {
-        Log.trace("PacketManager.receivePacket", [buffer]);
+        Log.trace("PacketManager.receivePacket", [ buffer ]);
 
-        this.receiveBuffer = Buffer.concat([this.receiveBuffer, buffer]);
+        this.receiveBuffer = Buffer.concat([ this.receiveBuffer, buffer ]);
 
         let targetSize : number;
         if (this.receiveBuffer.length > 4)
@@ -134,29 +139,32 @@ export default class PacketManager
 
     public async writePacket(packet : Packet) : Promise<void>
     {
-        Log.trace("PacketManager.writePacket", [packet]);
+        Log.trace("PacketManager.writePacket", [ packet ]);
 
         if (this.socket === null)
             throw new Error("PacketManager::writePacket: Uninitialized connection.");
 
         let buffer = Buffer.alloc(4);
         buffer.writeUInt32LE(packet.getSize() + 4);
-        buffer = Buffer.concat([buffer, packet.getData()]);
+        buffer = Buffer.concat([ buffer, packet.getData() ]);
 
-        while(true)
+        while (true)
         {
-            let count = await this.socket.write(buffer);
+            const count = await this.socket.write(buffer);
 
-            Log.debug(() => {
-                const options : BufferHexDump.Options =
+            Log.debug(
+                () =>
                 {
-                    offsetStyle: {
-                        foregroundColor: BufferHexDump.Color.red
-                    }
-                };
+                    const options : BufferHexDump.Options =
+                    {
+                        offsetStyle: {
+                            foregroundColor: BufferHexDump.Color.red
+                        }
+                    };
 
-                return "Raw Data Transfered:\n" + BufferHexDump.dump(buffer, undefined, undefined, options); + "\n";
-            });
+                    return "Raw Data Transfered:\n" + BufferHexDump.dump(buffer, undefined, undefined, options) + "\n";
+                }
+            );
 
             if (count === buffer.length)
                 return;

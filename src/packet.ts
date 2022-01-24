@@ -225,7 +225,7 @@ export default class Packet
 
     public readArray<ValueType>(readerFn : () => ValueType) : ValueType[]
     {
-        let value : ValueType[] = [];
+        const value : ValueType[] = [];
 
         const count = this.data.readUInt32BE(this.readOffset);
         this.readOffset += 4;

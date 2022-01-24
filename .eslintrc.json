@@ -10,11 +10,25 @@
     ],
     "rules": {
         "@typescript-eslint/naming-convention": "warn",
-        "@typescript-eslint/semi": "warn",
+        "@typescript-eslint/semi": [ "error", "always" ],
         "curly": [ "warn", "multi-or-nest", "consistent" ],
         "eqeqeq": "warn",
         "no-throw-literal": "warn",
-        "semi": "off"
+        "semi": [ "error", "always" ],
+        "semi-spacing": [ "warn", { "before": false, "after": true } ],
+        "comma-style": [ "warn", "last" ],
+        "comma-spacing":  [ "warn", { "before": false, "after": true } ],
+        "object-curly-spacing": [ "warn", "always" ],
+        "array-bracket-spacing": [ "warn", "always" ],
+        "computed-property-spacing": [ "warn", "never" ],
+        "space-in-parens": [ "warn", "never" ],
+        "space-unary-ops": "warn",
+        "keyword-spacing": [ "warn", { "before": true, "after": true } ],
+        "no-labels": "error",
+        "prefer-const": "warn",
+        "space-before-function-paren": [ "warn", "never" ],
+        "camelcase": [ "warn", { "properties": "always" } ],
+        "brace-style": [ "warn", "allman", { "allowSingleLine": true } ]
     },
     "ignorePatterns": [
         "out",

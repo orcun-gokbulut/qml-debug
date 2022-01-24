@@ -8,17 +8,17 @@ export default class ServiceDebugMessages
 
     public packetReceived(packet : Packet)
     {
-        let messageHeader = packet.readStringUTF8();
-        let type = packet.readInt32BE();
-        let message = packet.readStringUTF8();
-        let filename = packet.readStringUTF8();
-        let line = packet.readInt32BE();
-        let functionName = packet.readStringUTF8();
-        let category = packet.readStringUTF8();
-        let elapsed = packet.readInt64BE();
+        const messageHeader = packet.readStringUTF8();
+        const type = packet.readInt32BE();
+        const message = packet.readStringUTF8();
+        const filename = packet.readStringUTF8();
+        const line = packet.readInt32BE();
+        const functionName = packet.readStringUTF8();
+        const category = packet.readStringUTF8();
+        const elapsed = packet.readInt64BE();
 
         let typeText = "";
-        switch(type)
+        switch (type)
         {
             case 0:
                 typeText = "Debug";
@@ -45,7 +45,7 @@ export default class ServiceDebugMessages
                 break;
         }
 
-        let seconds = Number(elapsed / BigInt(1000000000));
+        const seconds = Number(elapsed / BigInt(1000000000));
         console.log(messageHeader + " " + seconds + "s " + filename + ":" + functionName + ":" + line + " - " + typeText + " (" + category + "): " + message);
 
         return true;
