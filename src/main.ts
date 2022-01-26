@@ -4,8 +4,10 @@ import PacketManager from '@qml-debug/packet-manager';
 
 import ServiceDebugMessages from '@qml-debug/service-debug-messages';
 import ServiceQmlDebugger from '@qml-debug/service-qml-debugger';
+import ServiceV8Debugger from '@qml-debug/service-v8-debugger';
 
 import * as BufferHexDump from 'buffer-hex-dump';
+import ServiceDeclarativeDebugClient from './service-declarative-debug-client';
 
 async function main() : Promise<void>
 {
@@ -15,93 +17,6 @@ async function main() : Promise<void>
     Log.trace("main", []);
 
     const pm = new PacketManager();
-    pm.registerHandler("QDeclarativeDebugClient",
-        (header, packet) : boolean =>
-        {
-            Log.trace("PacketHandler.QDeclarativeDebugClient", []);
-
-            const op = packet.readInt32BE();
-            if (op === 0)
-            {
-                const protocolVersion = packet.readUInt32BE();
-                const plugins = packet.readArray(Packet.prototype.readStringUTF16);
-                const pluginVersions = packet.readArray(Packet.prototype.readDouble);
-                const datastreamVersion = packet.readUInt32BE();
-
-                Log.detail(
-                    () =>
-                    {
-                        let output = "QDeclarativeDebugClient Server:\n" +
-                        "  Protocol Version: " + protocolVersion + "\n" +
-                        "  Datastream Version: " + datastreamVersion + "\n" +
-                        "  Plugin Count: " + plugins.length;
-                        if (plugins.length > 0)
-                        {
-                            output += "\n  Plugins:";
-                            for (let i = 0; i < plugins.length; i++)
-                                output += "\n    " + plugins[i] + ": " + pluginVersions[i];
-                        }
-
-                        return output;
-                    }
-                );
-
-                if (protocolVersion !== 1)
-                    Log.warning("Unknwon protocol version. Received Protocol Version: " + protocolVersion);
-
-                if (datastreamVersion !== 12)
-                    Log.warning("Unknown data stream version. Received Data Stream Version: " + datastreamVersion);
-
-                let debugMessagesFound = false;
-                let v8DebuggerFound = false;
-                let qmlDebugerFound = false;
-                for (let i = 0; i < plugins.length; i++)
-                {
-                    const currentPlugin = plugins[i];
-                    if (currentPlugin === "DebugMessages")
-                        debugMessagesFound = true;
-                    else if (currentPlugin === "V8Debugger")
-                        v8DebuggerFound = true;
-                    else if (currentPlugin === "QmlDebugger")
-                        qmlDebugerFound = true;
-                }
-
-                if (!v8DebuggerFound)
-                {
-                    Log.error("Required debugger service not found on debug server. Service Name: V8Debugger");
-                    Log.warning("You must enable necessary debug services by enabling them in -qmljsdebugger command line arguments. For example; ./your-application -qmljsdebugger=host:localhost,port:10222,services:DebugMessages,QmlDebugger,V8Debugger");
-                    pm.disconnect();
-
-                    return true;
-                }
-
-                if (!qmlDebugerFound)
-                {
-                    Log.error("Required debugger service not found on debug server. Service Name: QmlDebugger.");
-                    Log.warning("You must enable necessary debug services by enabling them in -qmljsdebugger command line arguments. For example; ./your-application -qmljsdebugger=host:localhost,port:10222,services:DebugMessages,QmlDebugger,V8Debugger");
-                    pm.disconnect();
-
-                    return true;
-                }
-
-                if (!debugMessagesFound)
-                {
-                    Log.warning("Supported but optional debugger service not found on debug server. Service Name: DebugMessage");
-                   Log.info("You can enable optional debug services by enabling them in -qmljsdebugger command line arguments. For example; ./your-application -qmljsdebugger=host:localhost,port:10222,services:DebugMessages,QmlDebugger,V8Debugger");
-                }
-            }
-            else
-            {
-                Log.error("Unkown QDeclarativeDebugClient operation. Received Operation: " + op);
-            }
-
-
-            qmlDebugger.requestListEngines();
-
-            return true;
-        }
-    );
-
 
     pm.registerHandler("*",
         (header, packet) : boolean =>
@@ -115,8 +30,17 @@ async function main() : Promise<void>
         }
     );
 
-    const qmlDebugger = new ServiceQmlDebugger(pm);
-    const qDebugMessages = new ServiceDebugMessages(pm);
+    const serviceDeclarativeDebugClient = new ServiceDeclarativeDebugClient(pm);
+    serviceDeclarativeDebugClient.initialize();
+
+    const serviceDebugMessages = new ServiceDebugMessages(pm);
+    serviceDebugMessages.initialize();
+
+    const serviceQmlDebugger = new ServiceQmlDebugger(pm);
+    serviceQmlDebugger.initialize();
+
+    const serviceV8Debugger = new ServiceV8Debugger(pm);
+    serviceV8Debugger.initialize();
 
     await pm.connect();
     const packet = new Packet();

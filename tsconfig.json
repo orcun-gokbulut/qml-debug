@@ -6,15 +6,23 @@
             "ES2020"
         ],
 
-        "rootDir": "./src",
-        "outDir": "./out",
+        "rootDir": "src",
+        "outDir": "out",
 
         "sourceMap": true,
-        "removeComments": true,
-        "forceConsistentCasingInFileNames": true,
+        "declaration": true,
 
         "strict": true,
         "noImplicitReturns": true,
+        "noImplicitAny": false,
+		"removeComments": false,
+		"noUnusedLocals": true,
+		"noImplicitThis": true,
+		"inlineSourceMap": false,
+		"preserveConstEnums": true,
+		"strictNullChecks": true,
+		"noUnusedParameters": false,
+        "forceConsistentCasingInFileNames": true,
 
         "paths": {
             "@qml-debug/*": [ "./src/*" ],
@@ -23,6 +31,8 @@
     },
     "exclude": [
         "node_modules",
-        ".vscode-test"
+        ".vscode-test",
+        "dist",
+        "out"
     ]
 }

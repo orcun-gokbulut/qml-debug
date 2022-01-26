@@ -1,6 +1,6 @@
-import Log  from './log';
-import Packet  from './packet';
-import PacketManager from './packet-manager';
+import Log  from '@qml-debug/log';
+import Packet from '@qml-debug/packet';
+import PacketManager from '@qml-debug/packet-manager';
 
 interface QmlEngine
 {
@@ -8,7 +8,7 @@ interface QmlEngine
     debugId : number;
 };
 
-interface AwaitingRequest
+interface ServiceAwaitingRequest
 {
     seqId : number;
     resolve: any;
@@ -19,12 +19,35 @@ interface AwaitingRequest
 export default class ServiceQmlDebugger
 {
     private seqId = 0;
-    private packetManager? : PacketManager;
-    public awaitingRequests : AwaitingRequest[] = [];
+    protected packetManager? : PacketManager;
+    public awaitingRequests : ServiceAwaitingRequest[] = [];
 
-    public packetReceived(packet : Packet)
+    public async requestListEngines() : Promise<QmlEngine[]>
     {
-        Log.trace("QmlDebugger.packetReceived", [ packet ]);
+        Log.trace("QmlDebugger.requestListEngines", []);
+
+        const packet = await this.makeRequest("LIST_ENGINES");
+
+        const count = packet.readUInt32BE();
+        const engines : QmlEngine[] = [];
+        for (let i = 0; i < count; i++)
+        {
+            const name = packet.readStringUTF8();
+            const id = packet.readUInt32BE();
+            engines.push(
+                {
+                    name: name,
+                    debugId: id
+                }
+            );
+        }
+
+        return engines;
+    }
+
+    private packetReceived(packet : Packet)
+    {
+        Log.trace("ServiceQmlDebugger.packetReceived", [ packet ]);
 
         const operation = packet.readStringUTF8();
         const seqId = packet.readInt32BE();
@@ -44,15 +67,15 @@ export default class ServiceQmlDebugger
         Log.error("Packet with wrong sequence id received. Sequence Id: " + seqId + ", " + operation +  "Operation: ");
     }
 
-    private nextSeqId() : number
+    protected nextSeqId() : number
     {
         this.seqId++;
         return this.seqId;
     }
 
-    private makeRequest(operation : string, data? : Packet) : Promise<Packet>
+    protected makeRequest(operation : string, data? : Packet) : Promise<Packet>
     {
-        Log.trace("QmlDebugger.makeRequest", [ operation, data ]);
+        Log.trace("ServiceQmlDebugger.makeRequest", [ operation, data ]);
 
         return new Promise<Packet>(
             (resolve, reject) =>
@@ -90,39 +113,26 @@ export default class ServiceQmlDebugger
         );
     }
 
-    public async requestListEngines() : Promise<QmlEngine[]>
+    public async initialize() : Promise<void>
     {
-        Log.trace("QmlDebugger.requestListEngines", []);
 
-        const packet = await this.makeRequest("LIST_ENGINES");
+    }
 
-        const count = packet.readUInt32BE();
-        const engines : QmlEngine[] = [];
-        for (let i = 0; i < count; i++)
-        {
-            const name = packet.readStringUTF8();
-            const id = packet.readUInt32BE();
-            engines.push(
-                {
-                    name: name,
-                    debugId: id
-                }
-            );
-        }
+    public async deinitialize() : Promise<void>
+    {
 
-        return engines;
     }
 
     public constructor(packetManager : PacketManager)
     {
-        Log.trace("QmlDebugger.initialize", [ packetManager ]);
+        Log.trace("ServiceQmlDebugger.constructor", [ packetManager ]);
 
         this.packetManager = packetManager;
         this.packetManager.registerHandler("QmlDebugger",
             (header, packet) : boolean =>
             {
-                const qmlDebuggerPacket = packet.readSubPacket();
-                this.packetReceived(qmlDebuggerPacket);
+                const servicePacket = packet.readSubPacket();
+                this.packetReceived(servicePacket);
 
                 return true;
             }

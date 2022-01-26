@@ -1,5 +1,6 @@
 {
     "name": "qml-debug",
+    "publisher": "orcun-gokbulut",
     "displayName": "QML Debug",
     "description": "Visual Studio Code debugging support for Qt QML language",
     "version": "0.0.1",
@@ -30,20 +31,95 @@
     "engines": {
         "vscode": "^1.54.0"
     },
-    "main": "out/extension.js",
+    "main": "dist/extension.js",
     "activationEvents": [
         "onCommand:qml-debug.version",
-        "onCommand:qml-debug.copyright"
+        "onCommand:qml-debug.copyright",
+        "onDebugResolve:qml"
     ],
     "contributes": {
         "commands": [
             {
                 "command": "qml-debug.version",
-                "title": "QML Debug: Version Information"
+                "category": "QML Debug",
+                "title": "Version Information",
+                "icon": "$(copyright)"
             },
             {
                 "command": "qml-debug.copyright",
-                "title": "QML Debug: Copyright Information"
+                "category": "QML Debug",
+                "title": "Copyright Information",
+                "icon": "$(info)"
+            }
+        ],
+        "languages": [
+            {
+                "id": "qml",
+                "aliases": [
+                    "Qt QML"
+                ],
+                "extensions": [
+                    ".qml"
+                ]
+            }
+        ],
+        "breakpoints": [
+            {
+                "language": "qml"
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "qml",
+                "label": "QML Debugger",
+                "program": "./out/debug-adapter.js",
+                "runtime": "node",
+                "configurationAttributes": {
+                    "attach": {
+                        "required": [
+                            "host",
+                            "port"
+                        ],
+                        "properties": {
+                            "host": {
+                                "type": "string",
+                                "description": "Hostname (or ip address) of the target program's debug service.",
+                                "default": "localhost"
+                            },
+                            "port": {
+                                "type": "number",
+                                "description": "Port of the target program's debug service."
+                            },
+                            "trace": {
+                                "type": "boolean",
+                                "description": "Enable logging of the Debug Adapter Protocol.",
+                                "default": true
+                            }
+                        }
+                    }
+                },
+                "initialConfigurations": [
+                    {
+                        "type": "qml",
+                        "request": "attach",
+                        "name": "Attach to QML Debugger",
+                        "host": "localhost",
+                        "port": "12150"
+                    }
+                ],
+                "configurationSnippets": [
+                    {
+                        "label": "QML Debug: Attach",
+                        "description": "A new configuration for 'debugging' QML based application. You can only attach to QML based application.",
+                        "body": {
+                            "name": "QML Debug: Attach",
+                            "type": "qml",
+                            "request": "attach",
+                            "host": "localhost",
+                            "port": 12150
+                        }
+                    }
+                ]
             }
         ]
     },
@@ -52,17 +128,25 @@
         "@qml-debug-root": "."
     },
     "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "bootstrap": "npm install --production",
-        "bootstrap-dev": "npm install",
-        "watch": "tsc -watch -p ./",
-        "pretest": "npm run compile && npm run lint",
-        "test": "node ./out/test/runTest.js",
-        "lint": "eslint ./src --ext ts",
-        "compile": "tsc",
+        "bootstrap": "npm install",
+        "bootstrap-prod": "npm install --production",
+        "compile": "tsc -p ./",
+        "lint": "eslint src --ext ts",
+        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "esbuild-base": "esbuild ./src/extension.ts --bundle --tsconfig=./tsconfig.json --external:vscode --format=cjs --platform=node --sourcemap --outfile=dist/extension.js",
+        "watch": "npm run -S esbuild-base -- --sources-content=false --watch",
+        "build": "npm run -S esbuild-base -- --sources-content=false",
+        "package": "vsce package",
+        "publish": "vsce publish",
+        "publish-pre-release": "vsce publish --pre-release",
+        "vscode:prepublish": "rimraf dist && npm run -S esbuild-base -- --minify",
+        "test": "npm run typecheck",
         "clean": "rm -rfv ./out/* ./dist/*",
         "dist-clean": "rm -rfv ./package-lock.json ./node_modules ./out ./dist"
     },
+    "bundledDependencies": [
+        "buffer-hex-dump"
+    ],
     "devDependencies": {
         "@types/glob": "^7.1.4",
         "@types/mocha": "^9.0.0",
@@ -70,20 +154,22 @@
         "@types/vscode": "^1.54.0",
         "@typescript-eslint/eslint-plugin": "^5.1.0",
         "@typescript-eslint/parser": "^5.1.0",
-        "@vscode/test-electron": "^1.6.2",
         "@vscode/debugadapter-testsupport": "^1.51.0",
+        "@vscode/test-electron": "^1.6.2",
+        "esbuild": "^0.14.13",
         "eslint": "^8.1.0",
         "glob": "^7.1.7",
         "mocha": "^9.1.3",
-        "typescript": "^4.4.4"
+        "typescript": "^4.4.4",
+        "vsce": "^2.6.4"
     },
     "dependencies": {
-        "buffer-hex-dump": "../buffer-hex-dump",
+        "@vscode/debugadapter": "^1.51.0",
+        "@vscode/debugprotocol": "^1.51.0",
+        "buffer-hex-dump": "file:../buffer-hex-dump",
         "colors": "^1.4.0",
         "module-alias": "^2.2.2",
         "promise-socket": "^7.0.0",
-        "source-map-support": "^0.5.21",
-        "@vscode/debugadapter": "^1.51.0",
-        "@vscode/debugprotocol": "^1.51.0"
+        "source-map-support": "^0.5.21"
     }
 }
