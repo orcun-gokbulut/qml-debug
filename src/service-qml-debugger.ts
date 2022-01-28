@@ -52,19 +52,26 @@ export default class ServiceQmlDebugger
         const operation = packet.readStringUTF8();
         const seqId = packet.readInt32BE();
 
-        for (let i = 0; i < this.awaitingRequests.length; i++)
+        if (operation === "OBJECT_CREATED")
         {
-            const current = this.awaitingRequests[i];
-            if (current.seqId === seqId)
-            {
-                this.awaitingRequests = this.awaitingRequests.splice(i, 1);
-                clearTimeout(current.timerId);
-                current.resolve(packet);
-                return;
-            }
-        }
 
-        Log.error("Packet with wrong sequence id received. Sequence Id: " + seqId + ", " + operation +  "Operation: ");
+        }
+        else
+        {
+            for (let i = 0; i < this.awaitingRequests.length; i++)
+            {
+                const current = this.awaitingRequests[i];
+                if (current.seqId === seqId)
+                {
+                    this.awaitingRequests = this.awaitingRequests.splice(i, 1);
+                    clearTimeout(current.timerId);
+                    current.resolve(packet);
+                    return;
+                }
+            }
+
+            Log.error("Packet with wrong sequence id received. Sequence Id: " + seqId + ", " + operation +  "Operation: ");
+        }
     }
 
     protected nextSeqId() : number
@@ -115,12 +122,12 @@ export default class ServiceQmlDebugger
 
     public async initialize() : Promise<void>
     {
-
+        Log.trace("ServiceQmlDebugger.initialize", []);
     }
 
     public async deinitialize() : Promise<void>
     {
-
+        Log.trace("ServiceQmlDebugger.deinitialize", []);
     }
 
     public constructor(packetManager : PacketManager)

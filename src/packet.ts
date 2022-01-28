@@ -375,19 +375,33 @@ export default class Packet
 
     public appendStringUTF8(value : string) : void
     {
-        const offset = this.size;
-        this.expand(4 + value.length);
-        this.data.writeUInt32BE(value.length, offset);
-        this.data.write(value, offset + 4);
+        if (value === "")
+        {
+            this.appendUInt32BE(0xFFFFFFFF);
+        }
+        else
+        {
+            const offset = this.size;
+            this.expand(4 + value.length);
+            this.data.writeUInt32BE(value.length, offset);
+            this.data.write(value, offset + 4);
+        }
     }
 
     public appendStringUTF16(value : string) : void
     {
-        const offset = this.size;
-        this.expand(4 + value.length * 2);
-        this.data.writeUInt32BE(value.length * 2, offset);
-        const stringBuffer = Buffer.from(value, "ucs-2").swap16();
-        stringBuffer.copy(this.data, offset + 4);
+        if (value === "")
+        {
+            this.appendUInt32BE(0xFFFFFFFF);
+        }
+        else
+        {
+            const offset = this.size;
+            this.expand(4 + value.length * 2);
+            this.data.writeUInt32BE(value.length * 2, offset);
+            const stringBuffer = Buffer.from(value, "ucs-2").swap16();
+            stringBuffer.copy(this.data, offset + 4);
+        }
     }
 
     public appendArray<ValueType>(appendFunction : (value : ValueType) => void, value : ValueType[])
@@ -399,14 +413,28 @@ export default class Packet
 
     public appendJsonUTF8(value : any) : void
     {
-        const jsonString = JSON.stringify(value);
-        this.appendStringUTF8(jsonString);
+        if (value === undefined || value === null || Object.keys(value).length === 0)
+        {
+            this.appendStringUTF8("");
+        }
+        else
+        {
+            const jsonString = JSON.stringify(value);
+            this.appendStringUTF8(jsonString);
+        }
     }
 
     public appendJsonUTF16(value : any) : void
     {
-        const jsonString = JSON.stringify(value);
-        this.appendStringUTF16(jsonString);
+        if (value === undefined || value === null || Object.keys(value).length === 0)
+        {
+            this.appendStringUTF16("");
+        }
+        else
+        {
+            const jsonString = JSON.stringify(value);
+            this.appendStringUTF16(jsonString);
+        }
     }
 
     public appendSubPacket(packet : Packet) : void

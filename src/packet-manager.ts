@@ -37,7 +37,7 @@ export default class PacketManager
                         foregroundColor: BufferHexDump.Color.green
                     }
                 };
-                return "Raw Data Received:\n" + BufferHexDump.dump(data, undefined, undefined, options) + "\n";
+                return "Raw Data Received:\n" + BufferHexDump.dump(data, undefined, undefined, options);
             }
         );
         this.receivePacket(data);
@@ -119,21 +119,28 @@ export default class PacketManager
 
         this.receiveBuffer = Buffer.concat([ this.receiveBuffer, buffer ]);
 
-        let targetSize : number;
-        if (this.receiveBuffer.length > 4)
-            targetSize = this.receiveBuffer.readUInt32LE();
-        else
-            targetSize = Number.MAX_SAFE_INTEGER;
+        while (true)
+        {
+            let targetSize : number;
+            if (this.receiveBuffer.length > 4)
+                targetSize = this.receiveBuffer.readUInt32LE();
+            else
+                targetSize = Number.MAX_SAFE_INTEGER;
 
-        if (this.receiveBuffer.length === targetSize)
-        {
-            this.dispatchPacket(new Packet(this.receiveBuffer, targetSize - 4, 4));
-            this.receiveBuffer = Buffer.alloc(0);
-        }
-        else if (this.receiveBuffer.length > targetSize)
-        {
-            this.dispatchPacket(new Packet(this.receiveBuffer, targetSize - 4, 4));
-            this.receiveBuffer = this.receiveBuffer.slice(targetSize, this.receiveBuffer.length);
+            if (this.receiveBuffer.length === targetSize)
+            {
+                this.dispatchPacket(new Packet(this.receiveBuffer, targetSize - 4, 4));
+                this.receiveBuffer = Buffer.alloc(0);
+            }
+            else if (this.receiveBuffer.length > targetSize)
+            {
+                this.dispatchPacket(new Packet(this.receiveBuffer, targetSize - 4, 4));
+                this.receiveBuffer = this.receiveBuffer.slice(targetSize, this.receiveBuffer.length);
+            }
+            else
+            {
+                break;
+            }
         }
     }
 
@@ -162,7 +169,7 @@ export default class PacketManager
                         }
                     };
 
-                    return "Raw Data Transfered:\n" + BufferHexDump.dump(buffer, undefined, undefined, options) + "\n";
+                    return "Raw Data Transfered:\n" + BufferHexDump.dump(buffer, undefined, undefined, options);
                 }
             );
 

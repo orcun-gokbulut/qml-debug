@@ -5,9 +5,10 @@ import PacketManager from '@qml-debug/packet-manager';
 import ServiceDebugMessages from '@qml-debug/service-debug-messages';
 import ServiceQmlDebugger from '@qml-debug/service-qml-debugger';
 import ServiceV8Debugger from '@qml-debug/service-v8-debugger';
+//import ServiceDeclarativeDebugClient from '@qml-debug/service-declarative-debug-client';
 
 import * as BufferHexDump from 'buffer-hex-dump';
-import ServiceDeclarativeDebugClient from './service-declarative-debug-client';
+
 
 async function main() : Promise<void>
 {
@@ -30,8 +31,8 @@ async function main() : Promise<void>
         }
     );
 
-    const serviceDeclarativeDebugClient = new ServiceDeclarativeDebugClient(pm);
-    serviceDeclarativeDebugClient.initialize();
+    /*const serviceDeclarativeDebugClient = new ServiceDeclarativeDebugClient(null, pm);
+    serviceDeclarativeDebugClient.initialize();*/
 
     const serviceDebugMessages = new ServiceDebugMessages(pm);
     serviceDebugMessages.initialize();

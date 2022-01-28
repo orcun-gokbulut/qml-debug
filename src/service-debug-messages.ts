@@ -8,6 +8,8 @@ export default class ServiceDebugMessages
 
     protected packetReceived(packet: Packet): void
     {
+        Log.trace("ServiceDebugMessages.packetReceived", [ packet ]);
+
         const messageHeader = packet.readStringUTF8();
         const type = packet.readInt32BE();
         const message = packet.readStringUTF8();
@@ -46,17 +48,20 @@ export default class ServiceDebugMessages
         }
 
         const seconds = Number(elapsed / BigInt(1000000000));
-        console.log(messageHeader + " " + seconds + "s " + filename + ":" + functionName + ":" + line + " - " + typeText + " (" + category + "): " + message);
+        if (false)
+            console.log(messageHeader + " " + seconds + "s " + filename + ":" + functionName + ":" + line + " - " + typeText + " (" + category + "): " + message);
+        else
+            console.log(messageHeader + " " + seconds + "s " + typeText + ": " + message);
     }
 
     public async initialize() : Promise<void>
     {
-
+        Log.trace("ServiceDebugMessages.initialize", []);
     }
 
     public async deinitialize() : Promise<void>
     {
-
+        Log.trace("ServiceDebugMessages.deinitialize", []);
     }
 
     public constructor(packetManager : PacketManager)
@@ -64,7 +69,7 @@ export default class ServiceDebugMessages
         Log.trace("ServiceDebugMessages.constructor", [ packetManager ]);
 
         this.packetManager = packetManager;
-        this.packetManager.registerHandler("QDebugMessages",
+        this.packetManager.registerHandler("DebugMessages",
             (header, packet) : boolean =>
             {
                 const servicePacket = packet.readSubPacket();

@@ -90,6 +90,18 @@
                                 "type": "number",
                                 "description": "Port of the target program's debug service."
                             },
+                            "paths": {
+                                "description": "List of qml source folders resource paths (qrc:/) to physical path mappings.",
+                                "type": "object",
+                                "patternProperties": {
+                                    ".*": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                }
+                            },
                             "trace": {
                                 "type": "boolean",
                                 "description": "Enable logging of the Debug Adapter Protocol.",
@@ -116,7 +128,10 @@
                             "type": "qml",
                             "request": "attach",
                             "host": "localhost",
-                            "port": 12150
+                            "port": 12150,
+                            "paths": {
+                                "qrc:/qml": "^\"\\${workspaceFolder}/<Folder that contain qml files>\""
+                            }
                         }
                     }
                 ]

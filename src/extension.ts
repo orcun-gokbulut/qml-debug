@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 
 export function activate(context: vscode.ExtensionContext)
 {
-	console.log('qml-debug is now active!');
+	Log.trace('extension.activate', [ context ]);
 
     Log.instance().level = LogLevel.debug;
 
@@ -34,5 +34,5 @@ export function activate(context: vscode.ExtensionContext)
 
 export function deactivate()
 {
-	console.log('qml-debug is deactivated!');
+    Log.trace('extension.deactivate', [ context ]);
 }

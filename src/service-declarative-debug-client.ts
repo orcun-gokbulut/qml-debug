@@ -1,14 +1,17 @@
 import Log from '@qml-debug/log';
 import Packet from '@qml-debug/packet';
 import PacketManager from '@qml-debug/packet-manager';
+import { DebugSession, TerminatedEvent } from '@vscode/debugadapter';
 
 export default class ServiceDeclarativeDebugClient
 {
     private packetManager? : PacketManager;
+    private session? : DebugSession;
+    private handshakeResolve : any;
 
     private packetReceived(packet: Packet): void
     {
-        Log.trace("PacketHandler.QDeclarativeDebugClient", []);
+        Log.trace("ServiceDeclarativeDebugClient.packetReceived", []);
 
         const op = packet.readInt32BE();
         if (op === 0)
@@ -60,6 +63,8 @@ export default class ServiceDeclarativeDebugClient
             {
                 Log.error("Required debugger service not found on debug server. Service Name: V8Debugger");
                 Log.warning("You must enable necessary debug services by enabling them in -qmljsdebugger command line arguments. For example; ./your-application -qmljsdebugger=host:localhost,port:10222,services:DebugMessages,QmlDebugger,V8Debugger");
+
+                this.session?.sendEvent(new TerminatedEvent());
                 this.packetManager!.disconnect();
             }
 
@@ -67,7 +72,9 @@ export default class ServiceDeclarativeDebugClient
             {
                 Log.error("Required debugger service not found on debug server. Service Name: QmlDebugger.");
                 Log.warning("You must enable necessary debug services by enabling them in -qmljsdebugger command line arguments. For example; ./your-application -qmljsdebugger=host:localhost,port:10222,services:DebugMessages,QmlDebugger,V8Debugger");
-                this.packetManager!.disconnect();
+
+                //this.session?.sendEvent(new TerminatedEvent());
+               // this.packetManager!.disconnect();
             }
 
             if (!debugMessagesFound)
@@ -80,10 +87,14 @@ export default class ServiceDeclarativeDebugClient
         {
             Log.error("Unknown QDeclarativeDebugClient operation. Received Operation: " + op);
         }
+
+        this.handshakeResolve();
     }
 
-    public async initialize(): Promise<void>
+    public async handshake() : Promise<void>
     {
+        Log.trace("ServiceDeclarativeDebugClient.handshake", []);
+
         const packet = new Packet();
         packet.appendStringUTF16("QDeclarativeDebugServer");
         packet.appendInt32BE(0); // OP
@@ -99,17 +110,26 @@ export default class ServiceDeclarativeDebugClient
         packet.appendBoolean(true); // MultiPacket Support
 
         await this.packetManager?.writePacket(packet);
+        await new Promise((resolve) => { this.handshakeResolve = resolve; });
+    }
+
+    public async initialize(): Promise<void>
+    {
+        Log.trace("ServiceDeclarativeDebugClient.initialize", []);
+
     }
 
     public async deinitialize() : Promise<void>
     {
+        Log.trace("ServiceDeclarativeDebugClient.deinitialize", []);
 
     }
 
-    public constructor(packetManager : PacketManager)
+    public constructor(session : DebugSession, packetManager : PacketManager)
     {
         Log.trace("ServiceDeclarativeDebugClient.constructor", [ packetManager ]);
 
+        this.session = session;
         this.packetManager = packetManager;
         this.packetManager.registerHandler("QDeclarativeDebugClient",
             (header, packet) : boolean =>

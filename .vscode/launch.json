@@ -7,7 +7,7 @@
 			"request": "launch",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
-                "/home/orcun/Desktop/Boyga/gcs-main/"
+                "/home/orcun/Qt5.12.8-dbg/examples/demos/samegame"
 			],
 			"outFiles": [
 				"${workspaceFolder}/out/**/*.js"
