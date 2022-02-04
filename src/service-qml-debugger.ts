@@ -1,6 +1,7 @@
 import Log  from '@qml-debug/log';
 import Packet from '@qml-debug/packet';
-import PacketManager from '@qml-debug/packet-manager';
+import { QmlDebugSession } from '@qml-debug/debug-adapter';
+
 
 interface QmlEngine
 {
@@ -19,7 +20,7 @@ interface ServiceAwaitingRequest
 export default class ServiceQmlDebugger
 {
     private seqId = 0;
-    protected packetManager? : PacketManager;
+    protected session? : QmlDebugSession;
     public awaitingRequests : ServiceAwaitingRequest[] = [];
 
     public async requestListEngines() : Promise<QmlEngine[]>
@@ -63,7 +64,7 @@ export default class ServiceQmlDebugger
                 const current = this.awaitingRequests[i];
                 if (current.seqId === seqId)
                 {
-                    this.awaitingRequests = this.awaitingRequests.splice(i, 1);
+                    this.awaitingRequests.splice(i, 1);
                     clearTimeout(current.timerId);
                     current.resolve(packet);
                     return;
@@ -115,7 +116,7 @@ export default class ServiceQmlDebugger
                     }
                 );
 
-                this.packetManager!.writePacket(envelopPacket);
+                this.session!.packetManager!.writePacket(envelopPacket);
             }
         );
     }
@@ -130,12 +131,12 @@ export default class ServiceQmlDebugger
         Log.trace("ServiceQmlDebugger.deinitialize", []);
     }
 
-    public constructor(packetManager : PacketManager)
+    public constructor(session : QmlDebugSession)
     {
-        Log.trace("ServiceQmlDebugger.constructor", [ packetManager ]);
+        Log.trace("ServiceQmlDebugger.constructor", [ session ]);
 
-        this.packetManager = packetManager;
-        this.packetManager.registerHandler("QmlDebugger",
+        this.session = session;
+        this.session.packetManager.registerHandler("QmlDebugger",
             (header, packet) : boolean =>
             {
                 const servicePacket = packet.readSubPacket();

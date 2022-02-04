@@ -26,7 +26,7 @@
         "keyword-spacing": [ "warn", { "before": true, "after": true } ],
         "no-labels": "error",
         "prefer-const": "warn",
-        "space-before-function-paren": [ "warn", "never" ],
+        "space-before-function-paren": [ "warn", { "named": "never", "anonymous": "never", "asyncArrow": "always" } ],
         "camelcase": [ "warn", { "properties": "always" } ],
         "brace-style": [ "warn", "allman", { "allowSingleLine": true } ]
     },

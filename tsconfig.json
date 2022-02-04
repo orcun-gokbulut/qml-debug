@@ -29,10 +29,12 @@
             "@qml-debug-root/*": [ "./*" ],
         }
     },
+    "include": [
+        "src"
+    ],
     "exclude": [
         "node_modules",
-        ".vscode-test",
-        "dist",
-        "out"
+        "out",
+        "dist"
     ]
 }

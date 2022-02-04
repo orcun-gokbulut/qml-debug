@@ -1,23 +1,30 @@
+import { OutputEvent } from '@vscode/debugadapter';
 import Log from '@qml-debug/log';
 import Packet from '@qml-debug/packet';
-import PacketManager from '@qml-debug/packet-manager';
+
+import { QmlDebugSession } from '@qml-debug/debug-adapter';
+import { DebugProtocol } from '@vscode/debugprotocol';
+
 
 export default class ServiceDebugMessages
 {
-    private packetManager? : PacketManager;
+    private session? : QmlDebugSession;
 
     protected packetReceived(packet: Packet): void
     {
         Log.trace("ServiceDebugMessages.packetReceived", [ packet ]);
 
         const messageHeader = packet.readStringUTF8();
+        if (messageHeader !== "MESSAGE")
+            return;
+
         const type = packet.readInt32BE();
         const message = packet.readStringUTF8();
         const filename = packet.readStringUTF8();
         const line = packet.readInt32BE();
         const functionName = packet.readStringUTF8();
         const category = packet.readStringUTF8();
-        const elapsed = packet.readInt64BE();
+        const elapsedSeconds = Number(packet.readInt64BE() / BigInt(1000000000));
 
         let typeText = "";
         switch (type)
@@ -47,29 +54,52 @@ export default class ServiceDebugMessages
                 break;
         }
 
-        const seconds = Number(elapsed / BigInt(1000000000));
-        if (false)
-            console.log(messageHeader + " " + seconds + "s " + filename + ":" + functionName + ":" + line + " - " + typeText + " (" + category + "): " + message);
-        else
-            console.log(messageHeader + " " + seconds + "s " + typeText + ": " + message);
+        const outputEvent : DebugProtocol.OutputEvent = new OutputEvent(typeText + ":  " + message, 'console');
+        outputEvent.body.source =
+        {
+            path: filename,
+        };
+        outputEvent.body.line = line;
+        outputEvent.body.data =
+        {
+            type: typeText,
+            timestamp: elapsedSeconds,
+            source: filename,
+            line: line,
+            category: category,
+            functionName: functionName,
+            message: message
+        };
+
+        console.log(messageHeader + " " + elapsedSeconds + "s " + typeText + ": " + message);
+
+        this.session?.sendEvent(outputEvent);
     }
 
     public async initialize() : Promise<void>
     {
         Log.trace("ServiceDebugMessages.initialize", []);
+
+        const outputGroupEvent : DebugProtocol.OutputEvent = new OutputEvent("QmlDebug Ouput", 'console');
+        outputGroupEvent.body.group = "start";
+        this.session?.sendEvent(outputGroupEvent);
     }
 
     public async deinitialize() : Promise<void>
     {
         Log.trace("ServiceDebugMessages.deinitialize", []);
+
+        const outputGroupEvent : DebugProtocol.OutputEvent = new OutputEvent("QmlDebug Ouput", 'console');
+        outputGroupEvent.body.group = "end";
+        this.session?.sendEvent(outputGroupEvent);
     }
 
-    public constructor(packetManager : PacketManager)
+    public constructor(session : QmlDebugSession)
     {
-        Log.trace("ServiceDebugMessages.constructor", [ packetManager ]);
+        Log.trace("ServiceDebugMessages.constructor", [ session ]);
 
-        this.packetManager = packetManager;
-        this.packetManager.registerHandler("DebugMessages",
+        this.session = session;
+        this.session.packetManager.registerHandler("DebugMessages",
             (header, packet) : boolean =>
             {
                 const servicePacket = packet.readSubPacket();

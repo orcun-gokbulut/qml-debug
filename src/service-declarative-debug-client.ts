@@ -1,13 +1,15 @@
 import Log from '@qml-debug/log';
 import Packet from '@qml-debug/packet';
-import PacketManager from '@qml-debug/packet-manager';
-import { DebugSession, TerminatedEvent } from '@vscode/debugadapter';
+import { QmlDebugSession } from '@qml-debug/debug-adapter';
+
+import { TerminatedEvent } from '@vscode/debugadapter';
+
 
 export default class ServiceDeclarativeDebugClient
 {
-    private packetManager? : PacketManager;
-    private session? : DebugSession;
+    private session? : QmlDebugSession;
     private handshakeResolve : any;
+    private handshakeResolveTimeout? : NodeJS.Timeout;
 
     private packetReceived(packet: Packet): void
     {
@@ -16,6 +18,8 @@ export default class ServiceDeclarativeDebugClient
         const op = packet.readInt32BE();
         if (op === 0)
         {
+            clearTimeout(this.handshakeResolveTimeout!);
+
             const protocolVersion = packet.readUInt32BE();
             const plugins = packet.readArray(Packet.prototype.readStringUTF16);
             const pluginVersions = packet.readArray(Packet.prototype.readDouble);
@@ -64,8 +68,8 @@ export default class ServiceDeclarativeDebugClient
                 Log.error("Required debugger service not found on debug server. Service Name: V8Debugger");
                 Log.warning("You must enable necessary debug services by enabling them in -qmljsdebugger command line arguments. For example; ./your-application -qmljsdebugger=host:localhost,port:10222,services:DebugMessages,QmlDebugger,V8Debugger");
 
-                this.session?.sendEvent(new TerminatedEvent());
-                this.packetManager!.disconnect();
+                this.session!.sendEvent(new TerminatedEvent());
+                this.session!.packetManager!.disconnect();
             }
 
             if (!qmlDebugerFound)
@@ -103,14 +107,26 @@ export default class ServiceDeclarativeDebugClient
             [
                 "V8Debugger",
                 "QmlDebugger",
-                "DebugMessages"
+                "DebugMessages",
+                "QmlInspector"
             ]
         );
         packet.appendInt32BE(12); // Stream Version (Qt 4.7)
         packet.appendBoolean(true); // MultiPacket Support
 
-        await this.packetManager?.writePacket(packet);
-        await new Promise((resolve) => { this.handshakeResolve = resolve; });
+        await new Promise(async (resolve, reject) =>
+        {
+            this.handshakeResolve = resolve;
+            this.handshakeResolveTimeout = setTimeout(
+                () =>
+                {
+                    reject(new Error("Handshake with QDeclarativeDebugging Service has been timedout."));
+                },
+                1000
+            );
+
+            await this.session!.packetManager?.writePacket(packet);
+        });
     }
 
     public async initialize(): Promise<void>
@@ -125,13 +141,12 @@ export default class ServiceDeclarativeDebugClient
 
     }
 
-    public constructor(session : DebugSession, packetManager : PacketManager)
+    public constructor(session : QmlDebugSession)
     {
-        Log.trace("ServiceDeclarativeDebugClient.constructor", [ packetManager ]);
+        Log.trace("ServiceDeclarativeDebugClient.constructor", [ session ]);
 
         this.session = session;
-        this.packetManager = packetManager;
-        this.packetManager.registerHandler("QDeclarativeDebugClient",
+        this.session.packetManager.registerHandler("QDeclarativeDebugClient",
             (header, packet) : boolean =>
             {
                 this.packetReceived(packet);

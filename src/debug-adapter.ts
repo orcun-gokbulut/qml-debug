@@ -1,14 +1,15 @@
 import Log from '@qml-debug/log';
 import ServiceDebugMessages from '@qml-debug/service-debug-messages';
 import ServiceQmlDebugger  from '@qml-debug/service-qml-debugger';
-import ServiceNativeDebugger from '@qml-debug/service-v8-debugger';
+import ServiceNativeDebugger, { QmlVariable } from '@qml-debug/service-v8-debugger';
 import ServiceDeclarativeDebugClient from './service-declarative-debug-client';
 import PacketManager from '@qml-debug/packet-manager';
 
-import { InitializedEvent, LoggingDebugSession, StoppedEvent, TerminatedEvent } from '@vscode/debugadapter';
-import { DebugProtocol } from '@vscode/debugprotocol';
-import * as vscode from 'vscode';
 import path = require('path');
+import * as vscode from 'vscode';
+import { InitializedEvent, LoggingDebugSession, Response, StoppedEvent, TerminatedEvent, Thread, StackFrame, Source, Scope, Variable } from '@vscode/debugadapter';
+import { DebugProtocol } from '@vscode/debugprotocol';
+
 
 interface QmlBreakpoint
 {
@@ -24,46 +25,136 @@ interface QmlDebugSessionAttachArguments extends DebugProtocol.AttachRequestArgu
     paths : { [key: string] : string };
 }
 
+
+function convertScopeName(type : number) : string
+{
+    switch (type)
+    {
+        case 0:
+            return "Global Variables";
+
+        case 1:
+            return "Parameters";
+
+        case 2:
+            return "Context";
+
+        case 3:
+            return "Qml Variables";
+
+        case 4:
+            return "Local Variables";
+
+        default:
+            return "Unknown Scope";
+    };
+}
+
+function convertScopeType(type : number) : string
+{
+    switch (type)
+    {
+        default:
+        case 0:
+        case 2:
+        case 3:
+            return  "";
+
+        case 1:
+            return "arguments";
+
+        case 4:
+            return "locals";
+    };
+}
+
 export class QmlDebugSession extends LoggingDebugSession
 {
-    private packetManager = new PacketManager();
-    private qmlDebugger = new ServiceQmlDebugger(this.packetManager);
-    private debugMessages = new ServiceDebugMessages(this.packetManager);
-    private v8debugger = new ServiceNativeDebugger(this.packetManager);
-    private declarativeDebugClient = new ServiceDeclarativeDebugClient(this, this.packetManager);
+    private packetManager_ = new PacketManager(this);
+    private qmlDebugger = new ServiceQmlDebugger(this);
+    private debugMessages = new ServiceDebugMessages(this);
+    private v8debugger = new ServiceNativeDebugger(this);
+    private declarativeDebugClient = new ServiceDeclarativeDebugClient(this);
 
     private breakpoints : QmlBreakpoint[] = [];
     private pathMappings = new Map<string, string>([]);
 
-    private mapPathTo(filename : string) : string
+    public get packetManager() : PacketManager
     {
-        filename = path.normalize(filename);
+        return this.packetManager_;
+    }
+
+    public get mainQmlThreadId() : number
+    {
+        return 1;
+    }
+
+    public mapPathTo(filename : string) : string
+    {
+        const parsed = path.parse(path.normalize(filename));
         for (const [ virtualPath, physicalPath ] of this.pathMappings)
         {
-            if (filename.startsWith(physicalPath))
+            if (parsed.dir.startsWith(physicalPath))
             {
-                const relativePath = filename.slice(physicalPath.length, filename.length);
-                return virtualPath + relativePath;
+                const relativePath = parsed.dir.slice(physicalPath.length, parsed.dir.length);
+                return virtualPath + relativePath + "/" + parsed.base;
             }
         }
 
         return filename;
     }
 
-    private mapPathFrom(filename : string) : string
+    public mapPathFrom(filename : string) : string
     {
-        filename = path.normalize(filename);
-        for (const [ physicalPath, virtualPath ] of this.pathMappings)
+        const parsed = path.parse(path.normalize(filename));
+        for (const [ virtualPath, physicalPath ] of this.pathMappings)
         {
-            if (filename.startsWith(virtualPath))
+            if (parsed.dir.startsWith(virtualPath))
             {
-                filename.slice(0, virtualPath.length);
-                filename = physicalPath + "/" + filename;
-                return filename.normalize();
+                const relativePath = parsed.dir.slice(virtualPath.length, parsed.dir.length);
+                return physicalPath + relativePath + "/" + parsed.base;
             }
         }
 
         return filename;
+    }
+
+    private raiseError(response : Response, errorNo : number, errorText : string) : void
+    {
+        this.sendErrorResponse(response,
+            {
+                id: errorNo,
+                format: "QML Debug: " + errorText,
+                showUser: true
+            }
+        );
+
+        this.sendEvent(new TerminatedEvent());
+    }
+
+    public onBreak(rawFilename : string, line : number)
+    {
+        const filename = this.mapPathFrom(rawFilename);
+
+        const breakpointIds : number[] = [];
+        for (let i = 0; i < this.breakpoints.length; i++)
+        {
+            const current = this.breakpoints[i];
+            if (current.filename === filename && current.line === line + 1)
+                breakpointIds.push(i);
+        }
+
+        if (breakpointIds.length === 0)
+        {
+            this.sendEvent(new StoppedEvent('step', this.mainQmlThreadId));
+        }
+        else
+        {
+            const stoppedEvent : DebugProtocol.StoppedEvent = new StoppedEvent('breakpoint', this.mainQmlThreadId);
+            stoppedEvent.body.hitBreakpointIds = breakpointIds;
+            stoppedEvent.body.description = "Breakpoint hit at " + filename + " on line(s) " + breakpointIds + ".";
+            this.sendEvent(stoppedEvent);
+        }
     }
 
     protected async initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): Promise<void>
@@ -71,28 +162,71 @@ export class QmlDebugSession extends LoggingDebugSession
         Log.trace("QmlDebugSession.initializeRequest", [ response, args ]);
 
         response.body = {};
-        response.body.supportsConfigurationDoneRequest = true;
+        /*WILL BE IMPLEMENTED*/response.body.supportsConfigurationDoneRequest = false;
+        response.body.supportsFunctionBreakpoints = false;
+        response.body.supportsConditionalBreakpoints = false;
+        response.body.supportsHitConditionalBreakpoints = false;
+        /*WILL BE IMPLEMENTED*/response.body.supportsEvaluateForHovers = false;
+        response.body.exceptionBreakpointFilters = [
+            {
+                label: "All Exceptions",
+                filter: "all",
+            }
+            // NOT SUPPORTED YET
+            /*{
+                label: "Uncaught Exceptions",
+                filter: "uncaught",
+            }*/
+        ];
         response.body.supportsStepBack = false;
-        response.body.supportsDataBreakpoints = false;
-        response.body.supportsCompletionsRequest = false;
-        response.body.supportsCancelRequest = false;
+        /*WILL BE IMPLEMENTED*/response.body.supportsSetVariable = false;
+        response.body.supportsRestartFrame = false;
+        response.body.supportsGotoTargetsRequest = false;
         response.body.supportsStepInTargetsRequest = false;
-        response.body.supportsBreakpointLocationsRequest = true;
-        response.body.supportsExceptionFilterOptions = false;
-        response.body.supportsExceptionInfoRequest = false;
-        response.body.supportsDisassembleRequest = false;
-        response.body.supportsSteppingGranularity = false;
-        response.body.supportsInstructionBreakpoints = false;
+        response.body.supportsCompletionsRequest = false;
+        response.body.completionTriggerCharacters = [];
+        response.body.supportsModulesRequest = false;
+        response.body.additionalModuleColumns = [];
+        response.body.supportedChecksumAlgorithms = [];
+        response.body.supportsRestartRequest = false;
+        /*WILL BE IMPLEMENTED*/response.body.supportsExceptionOptions = false;
+        /*WILL BE IMPLEMENTED*/response.body.supportsValueFormattingOptions = false;
+        /*WILL BE IMPLEMENTED*/response.body.supportsExceptionInfoRequest = false;
+        response.body.supportTerminateDebuggee = false;
+        response.body.supportSuspendDebuggee = false;
+        /*WILL BE IMPLEMENTED*/response.body.supportsDelayedStackTraceLoading = true;
+        response.body.supportsLoadedSourcesRequest = false;
+        /*WILL BE IMPLEMENTED*/response.body.supportsLogPoints = false;
+        response.body.supportsTerminateThreadsRequest = false;
+        /*WILL BE IMPLEMENTED*/response.body.supportsSetExpression = false;
+        response.body.supportsTerminateRequest = false;
+        response.body.supportsDataBreakpoints = false;
         response.body.supportsReadMemoryRequest = false;
         response.body.supportsWriteMemoryRequest = false;
+        response.body.supportsDisassembleRequest = false;
+        /*WILL BE IMPLEMENTED*/response.body.supportsCancelRequest = false;
+        /*WILL BE IMPLEMENTED*/response.body.supportsBreakpointLocationsRequest = false;
+        response.body.supportsClipboardContext = false;
+        response.body.supportsSteppingGranularity = false;
+        response.body.supportsInstructionBreakpoints = false;
+        response.body.supportsExceptionFilterOptions = false;
+        response.body.supportsSingleThreadExecutionRequests = false;
+
+        try
+        {
+            await this.debugMessages.initialize();
+            await this.qmlDebugger.initialize();
+            await this.v8debugger.initialize();
+            await this.declarativeDebugClient.initialize();
+        }
+        catch (error)
+        {
+            this.raiseError(response, 1001, "Cannot initialize. " + error);
+            return;
+        }
+
 
         this.sendResponse(response);
-
-        // Make Connection
-        await this.debugMessages.initialize();
-        await this.qmlDebugger.initialize();
-        await this.v8debugger.initialize();
-        await this.declarativeDebugClient.initialize();
     }
 
     protected async launchRequest(response: DebugProtocol.LaunchResponse, args: DebugProtocol.LaunchRequestArguments, request?: DebugProtocol.Request) : Promise<void>
@@ -118,27 +252,34 @@ export class QmlDebugSession extends LoggingDebugSession
         }
         catch (error)
         {
-            this.sendErrorResponse(response,
-                {
-                    id: 1001,
-                    format: "QML Debug: Cannot connect to debugger.\n\tHost: " + this.packetManager.host + "\n\tPort:" + this.packetManager.port,
-                    showUser: true
-                }
-            );
-
-            this.sendEvent(new TerminatedEvent());
-
+            this.raiseError(response, 1002, "Cannot connect to Qml debugger. \n\tHost: " + this.packetManager.host + "\n\tPort:" + this.packetManager.port + "\n\t" + error);
             return;
         }
 
         this.sendEvent(new InitializedEvent());
     }
 
+    protected async disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments, request?: DebugProtocol.Request): Promise<void>
+    {
+        try
+        {
+            this.v8debugger.disconnect();
+            this.v8debugger.deinitialize();
+            this.qmlDebugger.deinitialize();
+            this.declarativeDebugClient.deinitialize();
+            this.packetManager.disconnect();
+        }
+        catch (error)
+        {
+            this.raiseError(response, 1004, "Cannot disconnect from Qml debugger. \n\tHost: " + this.packetManager.host + "\n\tPort:" + this.packetManager.port + ", " + error);
+            return;
+        }
+    }
+
     protected async setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): Promise<void>
     {
         Log.trace("QmlDebugSession.setBreakPointsRequest", [ response, args, request ]);
 
-        // Remove deleted ones
         for (let i = 0; i < this.breakpoints.length; i++)
         {
             const currentExisting = this.breakpoints[i];
@@ -164,22 +305,11 @@ export class QmlDebugSession extends LoggingDebugSession
                 }
                 catch (error)
                 {
-                    this.sendErrorResponse(response,
-                        {
-                            id: 1002,
-                            format: "QML Debug: Cannot make request to debugger.",
-                            showUser: true
-                        }
-                    );
-
-                    this.sendEvent(new TerminatedEvent());
-
-                    return;
+                    this.raiseError(response, 1005, "Request failed. Request: \"removebreakpoint\". " + error);
                 }
             }
         }
 
-        // Add new ones
         for (let i = 0; i < args.breakpoints!.length; i++)
         {
             const current = args.breakpoints![i];
@@ -204,21 +334,12 @@ export class QmlDebugSession extends LoggingDebugSession
 
             try
             {
+
                 breakpointId = await this.v8debugger.requestSetBreakpoint(this.mapPathTo(args.source.path!), current.line);
             }
             catch (error)
             {
-                this.sendErrorResponse(response,
-                    {
-                        id: 1002,
-                        format: "QML Debug: Cannot make request to debugger.",
-                        showUser: true
-                    }
-                );
-
-                this.sendEvent(new TerminatedEvent());
-
-                return;
+                this.raiseError(response, 1005, "Request failed. Request: \"setbreakpoint\". " + error);
             }
 
             const newBreakpoint : QmlBreakpoint =
@@ -251,38 +372,167 @@ export class QmlDebugSession extends LoggingDebugSession
         this.sendResponse(response);
     }
 
+    protected async setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments, request?: DebugProtocol.Request): Promise<void>
+    {
+        this.v8debugger.requestSetExceptionBreakpoint("all", args.filters.indexOf("all") !== -1);
+
+        // NOT SUPPORTED YET
+        //this.v8debugger.requestSetExceptionBreakpoint("uncaught", args.filters.indexOf("uncaught") !== -1);
+    }
+
+    protected async threadsRequest(response: DebugProtocol.ThreadsResponse, request?: DebugProtocol.Request): Promise<void>
+    {
+        Log.trace("QmlDebugSession.threadsRequest", [ response, request ]);
+
+        response.body =
+        {
+            threads: [
+                new Thread(this.mainQmlThreadId, "Qml Thread")
+            ]
+        };
+        this.sendResponse(response);
+    }
+
+    protected async stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments, request?: DebugProtocol.Request): Promise<void>
+    {
+        Log.trace("QmlDebugSession.continueRequest", [ response, args, request ]);
+
+        try
+        {
+            const backtrace = await this.v8debugger.requestBacktrace();
+
+            for (const frame of backtrace.frames)
+            {
+                const dapFrame : DebugProtocol.StackFrame = new StackFrame(frame.index, frame.func, new Source(this.mapPathFrom(frame.script)), frame.line);
+                response.body.stackFrames.push(dapFrame);
+            }
+
+            this.sendResponse(response);
+        }
+        catch (error)
+        {
+            this.raiseError(response, 1005, "Request failed. Request: \"backtrace\". " + error);
+        }
+    }
+
+    protected async scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments, request?: DebugProtocol.Request): Promise<void>
+    {
+        Log.trace("QmlDebugSession.scopesRequest", [ response, args, request ]);
+
+        try
+        {
+            const scope = await this.v8debugger.requestScope(args.frameId);
+
+            const dapScope : DebugProtocol.Scope = new Scope(convertScopeName(scope.type), scope.index, false);
+            dapScope.presentationHint = convertScopeType(scope.type);
+            dapScope.variablesReference = scope.object!.handle;
+
+            this.sendResponse(response);
+        }
+        catch (error)
+        {
+            this.raiseError(response, 1005, "Request failed. Request: \"scope\". " + error);
+        }
+    }
+
+    protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request): Promise<void>
+    {
+        Log.trace("QmlDebugSession.variablesRequest", [ response, args, request ]);
+
+        try
+        {
+            const variables : QmlVariable[] = await this.v8debugger.requestLookup([ args.variablesReference ]);
+
+            if (variables.length === 0)
+                this.raiseError(response, 1005, "Request failed. Request: \"variable\".");
+
+            response.body.variables = variables[0].properties!.map<DebugProtocol.Variable>(
+                (value, index, array) =>
+                {
+                    return new Variable(value.name!, "" + value.value, value.ref);
+                }
+            );
+
+            this.sendResponse(response);
+        }
+        catch (error)
+        {
+            this.raiseError(response, 1005, "Request failed. Request: \"variable\". " + error);
+        }
+    }
+
+    protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments, request?: DebugProtocol.Request): Promise<void>
+    {
+        Log.trace("QmlDebugSession.evaluateRequest", [ response, args, request ]);
+
+        try
+        {
+            this.sendResponse(response);
+        }
+        catch (error)
+        {
+            this.raiseError(response, 1005, "Request failed. Request: \"evaluate\". " + error);
+        }
+    }
+
     protected async stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments, request?: DebugProtocol.Request) : Promise<void>
     {
         Log.trace("QmlDebugSession.stepInRequest", [ response, args, request ]);
 
-        await this.v8debugger.requestStepIn();
+        try
+        {
+            await this.v8debugger.requestStepIn();
+            this.sendResponse(response);
+        }
+        catch (error)
+        {
+            this.raiseError(response, 1005, "Request failed. Request: \"stepin\". " + error);
+        }
     }
 
     protected async stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments, request?: DebugProtocol.Request) : Promise<void>
     {
         Log.trace("QmlDebugSession.stepOutRequest", [ response, args, request ]);
 
-        await this.v8debugger.requestStepOut();
+        try
+        {
+            await this.v8debugger.requestStepOut();
+            this.sendResponse(response);
+        }
+        catch (error)
+        {
+            this.raiseError(response, 1005, "Request failed. Request: \"stepout\". " + error);
+        }
     }
 
     protected async nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments, request?: DebugProtocol.Request) : Promise<void>
     {
         Log.trace("QmlDebugSession.nextRequest", [ response, args, request ]);
 
-        await this.v8debugger.requestStepOver();
+        try
+        {
+            await this.v8debugger.requestStepOver();
+            this.sendResponse(response);
+        }
+        catch (error)
+        {
+            this.raiseError(response, 1005, "Request failed. Request: \"stepover\". " + error);
+        }
     }
 
     protected async continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments, request?: DebugProtocol.Request) : Promise<void>
     {
         Log.trace("QmlDebugSession.continueRequest", [ response, args, request ]);
 
-        await this.v8debugger.requestContinue();
-    }
-
-    public onBreak(filename : string, line : number)
-    {
-        this.mapPathFrom(filename);
-        this.sendEvent(new StoppedEvent('breakpoint',));
+        try
+        {
+            await this.v8debugger.requestContinue();
+            this.sendResponse(response);
+        }
+        catch (error)
+        {
+            this.raiseError(response, 1005, "Request failed. Request: \"continue\". " + error);
+        }
     }
 
     constructor(session : vscode.DebugSession)

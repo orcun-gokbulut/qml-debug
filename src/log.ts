@@ -1,5 +1,6 @@
 import * as colors from 'colors/safe';
 
+
 export enum LogLevel
 {
     debug,

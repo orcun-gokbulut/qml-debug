@@ -1,9 +1,12 @@
+import { TerminatedEvent } from '@vscode/debugadapter';
+import { QmlDebugSession } from '@qml-debug/debug-adapter';
 import Log from '@qml-debug/log';
 import Packet from '@qml-debug/packet';
 
 import { Socket } from "net";
 import PromiseSocket from "promise-socket";
 import * as BufferHexDump from "buffer-hex-dump";
+
 
 type PacketHandlerCallback = (header : string, data : Packet) => boolean;
 
@@ -15,6 +18,7 @@ export interface PacketHandler
 
 export default class PacketManager
 {
+    private session? : QmlDebugSession;
     private nodeSocket : Socket | null = null;
     private socket : PromiseSocket<Socket> | null = null;
     private receiveBuffer = Buffer.alloc(0);
@@ -47,6 +51,8 @@ export default class PacketManager
     {
         Log.trace("PacketManager.onClose", []);
 
+        this.session?.sendEvent(new TerminatedEvent());
+
         Log.warning("Connection closed.");
     }
 
@@ -64,6 +70,8 @@ export default class PacketManager
         this.nodeSocket = new Socket();
         this.socket = new PromiseSocket(this.nodeSocket);
         this.nodeSocket.on("data", (data : Buffer) => { this.onData(data); });
+        this.nodeSocket?.on("close", () => { this.onClose(); });
+        this.nodeSocket?.on("error", (err) => { this.onError(err); });
 
         Log.info("Connecting to " + this.host + ":" + this.port + "...");
         await this.socket.connect(this.port, this.host);
@@ -78,10 +86,13 @@ export default class PacketManager
             return;
 
         Log.info("Disconnecting from " + this.host + ":" + this.port + "...");
+
         await this.socket.end();
 
         this.socket.destroy();
         this.socket = null;
+
+        this.nodeSocket?.destroy();
         this.nodeSocket = null;
 
         Log.success("Disconnected.");
@@ -207,5 +218,11 @@ export default class PacketManager
                 );
             }
         );
+    }
+
+    constructor(session : QmlDebugSession)
+    {
+        Log.trace("PacketManager.constructor", [ session ]);
+        this.session = session;
     }
 };
