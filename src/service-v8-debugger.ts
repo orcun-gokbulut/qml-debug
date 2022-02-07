@@ -93,12 +93,13 @@ function isQmlScope(value : any) : value is QmlScope
     if (value.object !== undefined)
     {
 
-        if (value.object.handle !== undefined && typeof value.handle !== "number")
+        if (value.object.handle !== undefined && typeof value.object.handle !== "number")
             return false;
 
         if (!isQmlVariable(value.object))
             return false;
     }
+
     return true;
 }
 
@@ -115,13 +116,15 @@ export interface QmlVariable
 function isQmlVariable(value : any) : value is QmlVariable
 {
     if (typeof value !== "object" ||
-        typeof value.type !== "number" ||
-        value.value === undefined)
+        typeof value.type !== "string")
     {
         /* eslint-disable */
         return false;
         /* eslint-enable */
     }
+
+    if (value.type !== "undefined" && value.value === undefined)
+        return false;
 
     if (value.ref !== undefined && typeof value.ref !== "number")
         return false;
@@ -284,7 +287,7 @@ export default class ServiceV8Debugger
             {
                 type: "scriptRegExp",
                 target: filenameParam,
-                line: lineParam - 1,
+                line: lineParam,
                 enabled: true
             }
         );
@@ -355,8 +358,9 @@ export default class ServiceV8Debugger
             throw new Error("Response of lookup request has invalid format.");
 
         const variables : QmlVariable[] = [];
-        for (const variable of response)
+        for (const handle of handlesParam)
         {
+            const variable = response[handle];
             if (!isQmlVariable(variable))
                 continue;
 

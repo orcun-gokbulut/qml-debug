@@ -78,6 +78,9 @@ export class QmlDebugSession extends LoggingDebugSession
 
     private breakpoints : QmlBreakpoint[] = [];
     private pathMappings = new Map<string, string>([]);
+    private lineOffset : number = 0;
+    private columnOffset : number = 0;
+
 
     public get packetManager() : PacketManager
     {
@@ -140,7 +143,7 @@ export class QmlDebugSession extends LoggingDebugSession
         for (let i = 0; i < this.breakpoints.length; i++)
         {
             const current = this.breakpoints[i];
-            if (current.filename === filename && current.line === line + 1)
+            if (current.filename === filename && current.line === line - this.lineOffset)
                 breakpointIds.push(i);
         }
 
@@ -160,6 +163,9 @@ export class QmlDebugSession extends LoggingDebugSession
     protected async initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): Promise<void>
     {
         Log.trace("QmlDebugSession.initializeRequest", [ response, args ]);
+
+        this.lineOffset = (args.linesStartAt1 ? -1 : 0);
+        this.columnOffset = (args.columnsStartAt1 ? -1 : 0);
 
         response.body = {};
         /*WILL BE IMPLEMENTED*/response.body.supportsConfigurationDoneRequest = false;
@@ -237,11 +243,12 @@ export class QmlDebugSession extends LoggingDebugSession
 
     protected async attachRequest(response: DebugProtocol.AttachResponse, args: QmlDebugSessionAttachArguments, request?: DebugProtocol.Request): Promise<void>
     {
-        Log.trace("QmlDebugSession.launchRequest", [ response, args, request ]);
+        Log.trace("QmlDebugSession.attachRequest", [ response, args, request ]);
 
         this. packetManager.host = args.host;
         this.packetManager.port = args.port;
-        this.pathMappings = new Map(Object.entries(args.paths));
+        if (args.paths !== undefined)
+            this.pathMappings = new Map(Object.entries(args.paths));
 
         try
         {
@@ -335,7 +342,7 @@ export class QmlDebugSession extends LoggingDebugSession
             try
             {
 
-                breakpointId = await this.v8debugger.requestSetBreakpoint(this.mapPathTo(args.source.path!), current.line);
+                breakpointId = await this.v8debugger.requestSetBreakpoint(this.mapPathTo(args.source.path!), current.line + this.lineOffset);
             }
             catch (error)
             {
@@ -400,12 +407,17 @@ export class QmlDebugSession extends LoggingDebugSession
         try
         {
             const backtrace = await this.v8debugger.requestBacktrace();
-
-            for (const frame of backtrace.frames)
+            response.body =
             {
-                const dapFrame : DebugProtocol.StackFrame = new StackFrame(frame.index, frame.func, new Source(this.mapPathFrom(frame.script)), frame.line);
-                response.body.stackFrames.push(dapFrame);
-            }
+                stackFrames: backtrace.frames.map<StackFrame>(
+                    (frame, index, array) =>
+                    {
+                        const physicalPath = this.mapPathFrom(frame.script);
+                        const parsedPath =path.parse(physicalPath);
+                        return new StackFrame(frame.index, frame.func, new Source(parsedPath.base, physicalPath), frame.line - this.lineOffset);
+                    }
+                )
+            };
 
             this.sendResponse(response);
         }
@@ -421,11 +433,24 @@ export class QmlDebugSession extends LoggingDebugSession
 
         try
         {
-            const scope = await this.v8debugger.requestScope(args.frameId);
+            const frame = await this.v8debugger.requestFrame(args.frameId);
 
-            const dapScope : DebugProtocol.Scope = new Scope(convertScopeName(scope.type), scope.index, false);
-            dapScope.presentationHint = convertScopeType(scope.type);
-            dapScope.variablesReference = scope.object!.handle;
+            response.body =
+            {
+                scopes: await Promise.all(
+                    frame.scopes.map<Promise<Scope>>(
+                        async (scopeRef, index, array) =>
+                        {
+                            const scope = await this.v8debugger.requestScope(scopeRef.index);
+                            const dapScope : DebugProtocol.Scope = new Scope(convertScopeName(scope.type), scope.index, false);
+                            dapScope.presentationHint = convertScopeType(scope.type);
+                            dapScope.variablesReference = scope.object!.handle;
+
+                            return dapScope;
+                        }
+                    )
+                )
+            };
 
             this.sendResponse(response);
         }
@@ -446,12 +471,15 @@ export class QmlDebugSession extends LoggingDebugSession
             if (variables.length === 0)
                 this.raiseError(response, 1005, "Request failed. Request: \"variable\".");
 
-            response.body.variables = variables[0].properties!.map<DebugProtocol.Variable>(
-                (value, index, array) =>
-                {
-                    return new Variable(value.name!, "" + value.value, value.ref);
-                }
-            );
+            response.body =
+            {
+                variables: variables[0].properties!.map<Variable>(
+                    (value, index, array) =>
+                    {
+                        return new Variable(value.name!, "" + value.value, value.ref);
+                    }
+                )
+            };
 
             this.sendResponse(response);
         }
