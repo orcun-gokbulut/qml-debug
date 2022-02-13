@@ -1,15 +1,15 @@
 import Log from '@qml-debug/log';
 import ServiceDebugMessages from '@qml-debug/service-debug-messages';
 import ServiceQmlDebugger  from '@qml-debug/service-qml-debugger';
-import ServiceNativeDebugger, { QmlVariable } from '@qml-debug/service-v8-debugger';
-import ServiceDeclarativeDebugClient from './service-declarative-debug-client';
+import ServiceNativeDebugger from '@qml-debug/service-v8-debugger';
+import ServiceDeclarativeDebugClient from '@qml-debug/service-declarative-debug-client';
 import PacketManager from '@qml-debug/packet-manager';
+import { QmlEvent, QmlBreakEventBody, isQmlBreakEvent } from '@qml-debug/qml-messages';
 
 import path = require('path');
 import * as vscode from 'vscode';
-import { InitializedEvent, LoggingDebugSession, Response, StoppedEvent, TerminatedEvent, Thread, StackFrame, Source, Scope, Variable } from '@vscode/debugadapter';
+import { InitializedEvent, LoggingDebugSession, Response, StoppedEvent, TerminatedEvent, Thread, StackFrame, Source, Scope, Variable, InvalidatedEvent } from '@vscode/debugadapter';
 import { DebugProtocol } from '@vscode/debugprotocol';
-
 
 interface QmlBreakpoint
 {
@@ -24,7 +24,6 @@ interface QmlDebugSessionAttachArguments extends DebugProtocol.AttachRequestArgu
     port : number;
     paths : { [key: string] : string };
 }
-
 
 function convertScopeName(type : number) : string
 {
@@ -76,11 +75,13 @@ export class QmlDebugSession extends LoggingDebugSession
     private v8debugger = new ServiceNativeDebugger(this);
     private declarativeDebugClient = new ServiceDeclarativeDebugClient(this);
 
+    private breaked = false;
     private breakpoints : QmlBreakpoint[] = [];
     private pathMappings = new Map<string, string>([]);
-    private lineOffset : number = 0;
-    private columnOffset : number = 0;
-
+    private linesStartFromZero = false;
+    protected columnsStartFromZero = false;
+    private filterFunctions = true;
+    private sortMembers = true;
 
     public get packetManager() : PacketManager
     {
@@ -122,6 +123,36 @@ export class QmlDebugSession extends LoggingDebugSession
         return filename;
     }
 
+    public mapLineNumberTo(lineNumber : number) : number
+    {
+        return (this.linesStartFromZero ? lineNumber : lineNumber - 1);
+    }
+
+    public mapLineNumberFrom(lineNumber : number) : number
+    {
+        return (this.linesStartFromZero ? lineNumber : lineNumber + 1);
+    }
+
+    public mapColumnTo(column : number) : number
+    {
+        return (this.columnsStartFromZero ? column : column - 1);
+    }
+
+    public mapColumnFrom(column : number) : number
+    {
+        return (this.columnsStartFromZero ? column : column + 1);
+    }
+
+    public mapHandleTo(handle : number) : number
+    {
+        return handle - 1;
+    }
+
+    public mapHandleFrom(handle : number) : number
+    {
+        return handle + 1;
+    }
+
     private raiseError(response : Response, errorNo : number, errorText : string) : void
     {
         this.sendErrorResponse(response,
@@ -135,37 +166,46 @@ export class QmlDebugSession extends LoggingDebugSession
         this.sendEvent(new TerminatedEvent());
     }
 
-    public onBreak(rawFilename : string, line : number)
+    public onEvent(event : QmlEvent<any>)
     {
-        const filename = this.mapPathFrom(rawFilename);
+        if (event.event === "break")
+        {
+            if (!isQmlBreakEvent(event))
+                return;
 
-        const breakpointIds : number[] = [];
-        for (let i = 0; i < this.breakpoints.length; i++)
-        {
-            const current = this.breakpoints[i];
-            if (current.filename === filename && current.line === line - this.lineOffset)
-                breakpointIds.push(i);
+            const breakEvent : QmlBreakEventBody = event.body as QmlBreakEventBody;
+            const filename = this.mapPathFrom(breakEvent.script.name);
+            const breakpointIds : number[] = [];
+            for (let i = 0; i < this.breakpoints.length; i++)
+            {
+                const current = this.breakpoints[i];
+                if (current.filename === filename && current.line === this.mapLineNumberFrom(breakEvent.sourceLine))
+                    breakpointIds.push(i);
+            }
+
+            this.breaked = true;
+
+            if (breakpointIds.length === 0)
+            {
+                this.sendEvent(new StoppedEvent('step', this.mainQmlThreadId));
+            }
+            else
+            {
+                const stoppedEvent : DebugProtocol.StoppedEvent = new StoppedEvent('breakpoint', this.mainQmlThreadId);
+                stoppedEvent.body.hitBreakpointIds = breakpointIds;
+                stoppedEvent.body.description = "Breakpoint hit at " + filename + " on line(s) " + breakpointIds + ".";
+                this.sendEvent(stoppedEvent);
+            }
         }
 
-        if (breakpointIds.length === 0)
-        {
-            this.sendEvent(new StoppedEvent('step', this.mainQmlThreadId));
-        }
-        else
-        {
-            const stoppedEvent : DebugProtocol.StoppedEvent = new StoppedEvent('breakpoint', this.mainQmlThreadId);
-            stoppedEvent.body.hitBreakpointIds = breakpointIds;
-            stoppedEvent.body.description = "Breakpoint hit at " + filename + " on line(s) " + breakpointIds + ".";
-            this.sendEvent(stoppedEvent);
-        }
     }
 
     protected async initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): Promise<void>
     {
         Log.trace("QmlDebugSession.initializeRequest", [ response, args ]);
 
-        this.lineOffset = (args.linesStartAt1 ? -1 : 0);
-        this.columnOffset = (args.columnsStartAt1 ? -1 : 0);
+        this.linesStartFromZero = !args.linesStartAt1;
+        this.columnsStartFromZero = !args.columnsStartAt1;
 
         response.body = {};
         /*WILL BE IMPLEMENTED*/response.body.supportsConfigurationDoneRequest = false;
@@ -270,11 +310,12 @@ export class QmlDebugSession extends LoggingDebugSession
     {
         try
         {
-            this.v8debugger.disconnect();
-            this.v8debugger.deinitialize();
-            this.qmlDebugger.deinitialize();
-            this.declarativeDebugClient.deinitialize();
-            this.packetManager.disconnect();
+            await this.v8debugger.requestContinue();
+            await this.v8debugger.disconnect();
+            await this.v8debugger.deinitialize();
+            await this.qmlDebugger.deinitialize();
+            await this.declarativeDebugClient.deinitialize();
+            await this.packetManager.disconnect();
         }
         catch (error)
         {
@@ -308,7 +349,13 @@ export class QmlDebugSession extends LoggingDebugSession
 
                 try
                 {
-                    await this.v8debugger.requestRemoveBreakpoint(currentExisting.id);
+                    const result = await this.v8debugger.requestClearBreakpoint(currentExisting.id);
+                    if (!result.success)
+                    {
+                        response.success = false;
+                        this.sendResponse(response);
+                        return;
+                    }
                 }
                 catch (error)
                 {
@@ -341,8 +388,15 @@ export class QmlDebugSession extends LoggingDebugSession
 
             try
             {
+                const result = await this.v8debugger.requestSetBreakpoint(this.mapPathTo(args.source.path!), this.mapLineNumberTo(current.line));
+                if (!result.success)
+                {
+                    response.success = false;
+                    this.sendResponse(response);
+                    return;
+                }
 
-                breakpointId = await this.v8debugger.requestSetBreakpoint(this.mapPathTo(args.source.path!), current.line + this.lineOffset);
+                breakpointId = result.body.breakpoint;
             }
             catch (error)
             {
@@ -406,16 +460,46 @@ export class QmlDebugSession extends LoggingDebugSession
 
         try
         {
-            const backtrace = await this.v8debugger.requestBacktrace();
+            const result = await this.v8debugger.requestBacktrace();
+            if (!result.success)
+            {
+                response.success = false;
+                this.sendResponse(response);
+                return;
+            }
+
+            const backtrace = result.body;
+            let frameCount = 0;
             response.body =
             {
-                stackFrames: backtrace.frames.map<StackFrame>(
-                    (frame, index, array) =>
-                    {
-                        const physicalPath = this.mapPathFrom(frame.script);
-                        const parsedPath =path.parse(physicalPath);
-                        return new StackFrame(frame.index, frame.func, new Source(parsedPath.base, physicalPath), frame.line - this.lineOffset);
-                    }
+                stackFrames: backtrace.frames
+                    .filter(
+                        (value, index, array) =>
+                        {
+                            if (args.startFrame !== undefined)
+                            {
+                                if (index < args.startFrame)
+                                    return false;
+                            }
+
+                            if (args.levels !== undefined)
+                            {
+                                if (frameCount >= args.levels)
+                                    return false;
+
+                                frameCount++;
+                            }
+
+                            return true;
+                        }
+                    )
+                    .map<StackFrame>(
+                        (frame, index, array) =>
+                        {
+                            const physicalPath = this.mapPathFrom(frame.script);
+                            const parsedPath =path.parse(physicalPath);
+                            return new StackFrame(frame.index, frame.func, new Source(parsedPath.base, physicalPath), this.mapLineNumberFrom(frame.line));
+                        }
                 )
             };
 
@@ -433,18 +517,34 @@ export class QmlDebugSession extends LoggingDebugSession
 
         try
         {
-            const frame = await this.v8debugger.requestFrame(args.frameId);
+            const result = await this.v8debugger.requestFrame(args.frameId);
+            if (!result.success)
+            {
+                response.success = false;
+                this.sendResponse(response);
+                return;
+            }
 
+            const frame = result.body;
             response.body =
             {
                 scopes: await Promise.all(
                     frame.scopes.map<Promise<Scope>>(
                         async (scopeRef, index, array) =>
                         {
-                            const scope = await this.v8debugger.requestScope(scopeRef.index);
+                            const scopeResult = await this.v8debugger.requestScope(scopeRef.index);
+                            if (!scopeResult.success)
+                            {
+                                response.success = false;
+                                throw new Error("Cannot make scope request. ScopeId: " + scopeRef);
+                            }
+
+                            const scope = scopeResult.body;
                             const dapScope : DebugProtocol.Scope = new Scope(convertScopeName(scope.type), scope.index, false);
                             dapScope.presentationHint = convertScopeType(scope.type);
-                            dapScope.variablesReference = scope.object!.handle;
+                            dapScope.variablesReference = this.mapHandleFrom(scope.object!.handle);
+                            if (scope.object?.type === "object")
+                                dapScope.namedVariables = scope.object?.value;
 
                             return dapScope;
                         }
@@ -466,26 +566,120 @@ export class QmlDebugSession extends LoggingDebugSession
 
         try
         {
-            const variables : QmlVariable[] = await this.v8debugger.requestLookup([ args.variablesReference ]);
+            const result = await this.v8debugger.requestLookup([ this.mapHandleTo(args.variablesReference) ]);
+            if (!result.success)
+            {
+                response.success = false;
+                this.sendResponse(response);
+                return;
+            }
 
-            if (variables.length === 0)
-                this.raiseError(response, 1005, "Request failed. Request: \"variable\".");
+            const variables = Object.values(result.body);
 
+            if (variables[0].properties === undefined)
+            {
+                this.sendResponse(response);
+                return;
+            }
+
+            let variableCount = 0;
             response.body =
             {
-                variables: variables[0].properties!.map<Variable>(
-                    (value, index, array) =>
-                    {
-                        return new Variable(value.name!, "" + value.value, value.ref);
-                    }
-                )
+                variables: variables[0].properties!
+                    .filter(
+                        (value, index, array) : boolean =>
+                        {
+                            if (this.filterFunctions && value.type === "function")
+                                return false;
+
+                            if (args.start !== undefined)
+                            {
+                                if (index < args.start)
+                                    return false;
+                            }
+
+                            if (args.count !== undefined)
+                            {
+                                if (variableCount >= args.count)
+                                    return false;
+
+                                variableCount++;
+                            }
+
+                            return true;
+                        }
+                    )
+                    .map<Variable>(
+                        (qmlVariable, index, array) =>
+                        {
+                            const dapVariable : DebugProtocol.Variable =
+                            {
+                                name: qmlVariable.name!,
+                                type: qmlVariable.type,
+                                value: "" + qmlVariable.value,
+                                variablesReference: 0,
+                                namedVariables: 0,
+                                indexedVariables: 0,
+                                presentationHint:
+                                {
+                                    kind: "property"
+                                }
+                            };
+
+                            if (qmlVariable.type === "object")
+                            {
+                                if (qmlVariable.value !== null)
+
+                                    dapVariable.value = "object";
+                                else
+                                    dapVariable.value = "null";
+
+                                dapVariable.namedVariables = qmlVariable.value;
+                                if (dapVariable.namedVariables !== 0)
+                                    dapVariable.variablesReference = this.mapHandleFrom(qmlVariable.ref!);
+                            }
+                            else if (qmlVariable.type === "function")
+                            {
+                                dapVariable.value = "function";
+                                dapVariable.presentationHint!.kind = "method";
+                            }
+                            else if (qmlVariable.type === "undefined")
+                            {
+                                dapVariable.value = "undefined";
+                            }
+                            else if (qmlVariable.type === "string")
+                            {
+                                dapVariable.value = "\"" + qmlVariable.value + "\"";
+                            }
+
+                            Log.debug(() => { return "DAP Variable: " + JSON.stringify(dapVariable); });
+
+                            return dapVariable;
+                        }
+                    )
             };
+
+            if (this.sortMembers)
+            {
+                response.body.variables = response.body.variables
+                    .sort(
+                        (a, b) =>
+                        {
+                            if (a.name === b.name)
+                                return 0;
+                            else if (a.name > b.name)
+                                return 1;
+                            else
+                                return -1;
+                        }
+                    );
+            }
 
             this.sendResponse(response);
         }
         catch (error)
         {
-            this.raiseError(response, 1005, "Request failed. Request: \"variable\". " + error);
+            this.raiseError(response, 1005, "Request failed. Request: \"variables\". " + error);
         }
     }
 
@@ -495,6 +689,55 @@ export class QmlDebugSession extends LoggingDebugSession
 
         try
         {
+            const result = await this.v8debugger.requestEvaluate(args.frameId!, args.expression);
+            if (!result.success)
+            {
+                response.success = false;
+                this.sendResponse(response);
+                return;
+            }
+
+            response.body =
+            {
+                result: "" + result.body.value,
+                type: result.body.type,
+                variablesReference: 0,
+                namedVariables: 0,
+                indexedVariables: 0,
+                presentationHint:
+                {
+                    kind: "property"
+                }
+            };
+
+            if (result.body.type === "object")
+            {
+                if (result.body.value !== null)
+                    response.body.result = "object";
+                else
+                    response.body.result = "null";
+
+                response.body.variablesReference = this.mapHandleFrom(result.body.handle);
+                response.body.namedVariables = result.body.value;
+            }
+            else if (result.body.type === "string")
+            {
+                response.body.result = "\"" + result.body.value + "\"";
+            }
+            else if (result.body.type === "function")
+            {
+                response.body.result = "function";
+                response.body.presentationHint!.kind = "method";
+            }
+            else if (result.body.type === "undefined")
+            {
+                response.body.result = "undefined";
+            }
+            else if (result.body.type === "string")
+            {
+                response.body.result = "\"" + result.body.value + "\"";
+            }
+
             this.sendResponse(response);
         }
         catch (error)
@@ -509,7 +752,16 @@ export class QmlDebugSession extends LoggingDebugSession
 
         try
         {
-            await this.v8debugger.requestStepIn();
+            const result = await this.v8debugger.requestContinue("in", 1);
+            if (!result.success)
+            {
+                response.success = false;
+                this.sendResponse(response);
+                return;
+            }
+
+            this.breaked = false;
+
             this.sendResponse(response);
         }
         catch (error)
@@ -524,7 +776,16 @@ export class QmlDebugSession extends LoggingDebugSession
 
         try
         {
-            await this.v8debugger.requestStepOut();
+            const result = await this.v8debugger.requestContinue("out", 1);
+            if (!result.success)
+            {
+                response.success = false;
+                this.sendResponse(response);
+                return;
+            }
+
+            this.breaked = false;
+
             this.sendResponse(response);
         }
         catch (error)
@@ -539,12 +800,21 @@ export class QmlDebugSession extends LoggingDebugSession
 
         try
         {
-            await this.v8debugger.requestStepOver();
+            const result = await this.v8debugger.requestContinue("next", 1);
+            if (!result.success)
+            {
+                response.success = false;
+                this.sendResponse(response);
+                return;
+            }
+
+            this.breaked = false;
+
             this.sendResponse(response);
         }
         catch (error)
         {
-            this.raiseError(response, 1005, "Request failed. Request: \"stepover\". " + error);
+            this.raiseError(response, 1005, "Request failed. Request: \"next\". " + error);
         }
     }
 
@@ -554,7 +824,16 @@ export class QmlDebugSession extends LoggingDebugSession
 
         try
         {
-            await this.v8debugger.requestContinue();
+            const result = await this.v8debugger.requestContinue(undefined, undefined);
+            if (!result.success)
+            {
+                response.success = false;
+                this.sendResponse(response);
+                return;
+            }
+
+            this.breaked = false;
+
             this.sendResponse(response);
         }
         catch (error)
@@ -566,6 +845,21 @@ export class QmlDebugSession extends LoggingDebugSession
     constructor(session : vscode.DebugSession)
     {
         super();
+
+        this.filterFunctions = vscode.workspace.getConfiguration("qml-debug").get<boolean>("filterFunctions", true);
+        this.sortMembers = vscode.workspace.getConfiguration("qml-debug").get<boolean>("sortMembers", true);
+        vscode.workspace.onDidChangeConfiguration(() =>
+        {
+            const filterFunctions = vscode.workspace.getConfiguration("qml-debug").get<boolean>("filterFunctions", true);
+            const sortMembers = vscode.workspace.getConfiguration("qml-debug").get<boolean>("sortMembers", true);
+            const invalidate = (this.filterFunctions !== filterFunctions || this.sortMembers !== sortMembers);
+
+            this.filterFunctions = filterFunctions;
+            this.sortMembers = sortMembers;
+
+            if (invalidate && this.breaked)
+                this.sendEvent(new InvalidatedEvent());
+        });
 
         Log.trace("QmlDebugSession.continueRequest", [ session ]);
     }

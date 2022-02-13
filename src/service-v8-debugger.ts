@@ -1,154 +1,62 @@
 import Log  from '@qml-debug/log';
 import Packet from '@qml-debug/packet';
+
 import { QmlDebugSession } from '@qml-debug/debug-adapter';
+import {
+    QmlRequest,
+    QmlResponse,
+    isQmlVersionRequest,
+    QmlVersionResponse,
+    isQmlVersionResponse,
+    QmlSetBreakpointArguments,
+    isQmlSetBreakpointRequest,
+    QmlSetBreakpointResponse,
+    isQmlSetBreakpointResponse,
+    QmlClearBreakpointArguments,
+    isQmlClearBreakpointRequest,
+    QmlClearBreakpointResponse,
+    isClearSetBreakpointResponse,
+    QmlSetExceptionBreakArguments,
+    isQmlSetExceptionBreakRequest,
+    QmlSetExceptionBreakResponse,
+    isQmlSetExceptionBreakResponse,
+    QmlBacktraceArguments,
+    isQmlBacktraceRequest,
+    QmlBacktraceResponse,
+    isQmlBacktraceResponse,
+    QmlFrameRequestArguments,
+    isQmlFrameRequest,
+    QmlFrameResponse,
+    isQmlFrameResponse,
+    QmlScopeRequestArguments,
+    isQmlScopeRequest,
+    isQmlScopeResponse,
+    QmlScopeResponse,
+    QmlLookupRequestArguments,
+    isQmlLookupRequest,
+    QmlLookupResponse,
+    isQmlLookupResponse,
+    QmlEvalutaRequestArguments,
+    isQmlEvalutaRequest,
+    QmlEvaluateResponse,
+    isQmlEvaluateResponse,
+    QmlContinueRequestArguments,
+    isQmlContinueRequest,
+    QmlContinueResponse,
+    isQmlContinueResponse,
+    isQmlEvent,
+    isQmlMessage,
+    isQmlResponse
+} from '@qml-debug/qml-messages';
 
-
-export interface QmlBacktrace
-{
-    fromFrame : number;
-    toFrame : number;
-    frames : QmlFrame[];
-};
-
-function isQmlBacktrace(value : any) : value is QmlBacktrace
-{
-    if (typeof value !== "object" ||
-        typeof value.fromFrame !== "number" ||
-        typeof value.toFrame !== "number" ||
-        !Array.isArray(value.frames))
-    {
-        /* eslint-disable */
-        return false;
-        /* eslint-enable */
-    }
-
-    for (const frame of value.frames)
-    {
-        if (!isQmlFrame(frame))
-            return false;
-    }
-
-    return true;
-}
-export interface QmlFrame
-{
-    index : number;
-    func : string;
-    script : string;
-    line: number;
-    debuggerFrame : boolean;
-    scopes : QmlScope[];
-};
-
-function isQmlFrame(value : any) : value is QmlFrame
-{
-    if (typeof value !== "object" ||
-        typeof value.index !== "number" ||
-        typeof value.func !== "string" ||
-        typeof value.script !== "string" ||
-        typeof value.line !== "number" ||
-        typeof value.debuggerFrame !== "boolean")
-    {
-        /* eslint-disable */
-        return false;
-        /* eslint-enable */
-    }
-
-    if (value.scopes !== undefined)
-    {
-        if (!Array.isArray(value.scopes))
-            return false;
-
-        for (const scope of value.scopes)
-        {
-            if (!isQmlScope(scope))
-                return false;
-        }
-    }
-
-    return true;
-}
-export interface QmlScope
-{
-    frameIndex : number;
-    index : number;
-    type : number;
-    object? : QmlVariable;
-};
-
-function isQmlScope(value : any) : value is QmlScope
-{
-    if (typeof value !== "object" ||
-        typeof value.index !== "number" ||
-        typeof value.type !== "number")
-    {
-        /* eslint-disable */
-        return false;
-        /* eslint-enable */
-    }
-
-    if (value.frameIndex !== undefined && typeof value.frameIndex !== "number")
-        return false;
-
-    if (value.object !== undefined)
-    {
-
-        if (value.object.handle !== undefined && typeof value.object.handle !== "number")
-            return false;
-
-        if (!isQmlVariable(value.object))
-            return false;
-    }
-
-    return true;
-}
-
-export interface QmlVariable
-{
-    handle : number;
-    name? : string;
-    type : string;
-    value : any;
-    ref? : number;
-    properties? : QmlVariable[];
-};
-
-function isQmlVariable(value : any) : value is QmlVariable
-{
-    if (typeof value !== "object" ||
-        typeof value.type !== "string")
-    {
-        /* eslint-disable */
-        return false;
-        /* eslint-enable */
-    }
-
-    if (value.type !== "undefined" && value.value === undefined)
-        return false;
-
-    if (value.ref !== undefined && typeof value.ref !== "number")
-        return false;
-
-    if (value.properties !== undefined)
-    {
-        if (!Array.isArray(value.properties))
-            return false;
-
-        for (const property of value.properties)
-        {
-            if (!isQmlVariable(property))
-                return false;
-        }
-    }
-
-    return true;
-}
 interface ServiceAwaitingRequest
 {
     seqId : number;
-    resolve: any;
-    reject: any;
+    resolve: (value? : QmlResponse<any>) => void;
+    reject: (value : Error) => void;
     timeoutId : NodeJS.Timeout;
+    responseCheckFunction: (value : any) => boolean;
+    autoReject : boolean;
 };
 
 export default class ServiceV8Debugger
@@ -157,7 +65,7 @@ export default class ServiceV8Debugger
     private session? : QmlDebugSession;
     private awaitingRequests : ServiceAwaitingRequest[] = [];
     private connectRequest?: ServiceAwaitingRequest;
-    private requestTimeOut = 5000;
+    private requestTimeOut = 600000;
 
     private packetReceived(packet : Packet)
     {
@@ -174,31 +82,46 @@ export default class ServiceV8Debugger
 
         if (operation === "v8message")
         {
-            const innerPacket = packet.readJsonUTF8();
-            if (innerPacket.type === "response")
+            const message = packet.readJsonUTF8();
+
+            if (!isQmlMessage(message))
+                throw Error("Message format check failed. Sequence Number: " + message.seq);
+
+            if (message.type === "response")
             {
+                if (!isQmlResponse(message))
+                    throw Error("Response base format check failed.");
+
                 for (let i = 0; i < this.awaitingRequests.length; i++)
                 {
                     const current = this.awaitingRequests[i];
-                    if (current.seqId !== innerPacket.request_seq)
+                    if (current.seqId !== message.request_seq)
                         continue;
 
                     this.finishOrCancelRequest(current.seqId);
 
-                    if (!innerPacket.success)
-                        current.reject(new Error("V8Debugger: Operation failed. Sequence Number: " + innerPacket.request_seq + ", Operation: " + innerPacket.command));
-                    else
-                        current.resolve(innerPacket.body);
+                    if (current.autoReject && !message.success)
+                        current.reject(new Error("V8Debugger: Command failed. Sequence Number: " + message.request_seq + ", Command: " + message.command));
+
+                    if (message.success && !current.responseCheckFunction(message))
+                    {
+                        current.reject(new Error("Response format check failed. Sequence Number (Request Seq Number): " + message.seq + "(" + message.request_seq + ")" + ", Command: " + message.command));
+                        return;
+                    }
+
+                    current.resolve(message);
 
                     return;
                 }
 
-                Log.error("V8Debugger: Packet with wrong sequence id received. Sequence Id: " + innerPacket.request_seq  + ", Operation: " + operation);
+                Log.error("V8Debugger: Packet with wrong sequence id received. Sequence Id: " + message.request_seq  + ", Operation: " + operation);
             }
-            else if (innerPacket.type === "event")
+            else if (message.type === "event")
             {
-                if (innerPacket.event === "break")
-                    this.session!.onBreak(innerPacket.body.script.name as string, innerPacket.body.sourceLine as number);
+                if (!isQmlEvent(message))
+                    throw Error("Event format check failed. Sequence Number: " + message.seq);
+
+                this.session!.onEvent(message);
             }
         }
         else if (operation === "connect")
@@ -211,15 +134,18 @@ export default class ServiceV8Debugger
         }
     }
 
-    private nextSeqId() : number
+    private nextSeq() : number
     {
         this.seqId++;
         return this.seqId;
     }
 
-    private makeRequest(command : string, args : any | null) : Promise<any>
+    private makeRequest<ArgumentType, ResponseType>(requestCommand : string, requestArgs : ArgumentType, requestCheckFunction : any, responseCheckFunctionParam : any, autoReject? : boolean) : Promise<ResponseType>
     {
-        Log.trace("ServiceV8Debugger.makeRequest", [ command, args ]);
+        Log.trace("ServiceV8Debugger.makeRequest", [ requestCommand, requestArgs ]);
+
+        if (autoReject === undefined)
+            autoReject = true;
 
         return new Promise<any>(
             async (resolveParam, rejectParam) =>
@@ -227,15 +153,20 @@ export default class ServiceV8Debugger
                 const packet = new Packet();
                 packet.appendStringUTF8("V8DEBUG");
                 packet.appendStringUTF8("v8request");
-                const seq = this.nextSeqId();
-                packet.appendJsonUTF8(
-                    {
-                        type: "request",
-                        command: command,
-                        seq: seq,
-                        arguments: args
-                    }
-                );
+                const seq = this.nextSeq();
+
+                const request : QmlRequest<ArgumentType> =
+                {
+                    type: "request",
+                    command: requestCommand,
+                    seq: seq,
+                    arguments: requestArgs
+                };
+
+                if (!requestCheckFunction(request))
+                    throw Error("Request format check failed. Command: " + requestCommand + ", Arguments: " + requestArgs);
+
+                packet.appendJsonUTF8(request);
 
                 const envelopPacket = new Packet();
                 envelopPacket.appendStringUTF16("V8Debugger");
@@ -255,7 +186,9 @@ export default class ServiceV8Debugger
                         seqId: seq,
                         resolve: resolveParam,
                         reject: rejectParam,
-                        timeoutId: tId
+                        timeoutId: tId,
+                        responseCheckFunction: responseCheckFunctionParam,
+                        autoReject: autoReject!
                     }
                 );
 
@@ -279,139 +212,171 @@ export default class ServiceV8Debugger
         }
     }
 
-    public async requestSetBreakpoint(filenameParam : string, lineParam : number) : Promise<number>
+    public async requestVersion() : Promise<QmlVersionResponse>
+    {
+        Log.trace("ServiceV8Debugger.requestBacktrace", []);
+
+        const response = await this.makeRequest<null, QmlVersionResponse>(
+            "version",
+            null,
+            isQmlVersionRequest,
+            isQmlVersionResponse
+        );
+
+        return response;
+    }
+
+    public async requestSetBreakpoint(filenameParam : string, lineParam : number) : Promise<QmlSetBreakpointResponse>
     {
         Log.trace("ServiceV8Debugger.requestSetBreakpoint", [ filenameParam, lineParam ]);
 
-        const response = await this.makeRequest("setbreakpoint",
+        const response = await this.makeRequest<QmlSetBreakpointArguments, QmlSetBreakpointResponse>(
+            "setbreakpoint",
             {
                 type: "scriptRegExp",
                 target: filenameParam,
                 line: lineParam,
                 enabled: true
-            }
+            },
+            isQmlSetBreakpointRequest,
+            isQmlSetBreakpointResponse
         );
 
-        return response.breakpoint as number;
+        return response;
     }
 
-    public async requestRemoveBreakpoint(idParam : number) : Promise<void>
+    public async requestClearBreakpoint(idParam : number) : Promise<QmlClearBreakpointResponse>
     {
-        Log.trace("ServiceV8Debugger.requestRemoveBreakpoint", [ idParam ]);
+        Log.trace("ServiceV8Debugger.requestClearBreakpoint", [ idParam ]);
 
-        await this.makeRequest("clearbreakpoint",
+        const response = await this.makeRequest<QmlClearBreakpointArguments, QmlClearBreakpointResponse>(
+            "clearbreakpoint",
             {
                 breakpoint: idParam
-            }
+            },
+            isQmlClearBreakpointRequest,
+            isClearSetBreakpointResponse
         );
+
+        return response;
     }
 
-    public async requestSetExceptionBreakpoint(typeParam : string, enabledParam : boolean) : Promise<void>
+    public async requestSetExceptionBreakpoint(typeParam : string, enabledParam : boolean) : Promise<QmlSetExceptionBreakResponse>
     {
         Log.trace("ServiceV8Debugger.requestSetExceptionBreakpoint", [ typeParam, enabledParam ]);
-        await this.makeRequest("setexceptionbreak", { type: typeParam, enabled: enabledParam });
+
+        const response = await this.makeRequest<QmlSetExceptionBreakArguments, QmlSetExceptionBreakResponse>(
+            "setexceptionbreak",
+            {
+                type: typeParam,
+                enabled: enabledParam
+            },
+            isQmlSetExceptionBreakRequest,
+            isQmlSetExceptionBreakResponse
+        );
+
+        return response;
     }
 
-    public async requestBacktrace() : Promise<QmlBacktrace>
+    public async requestBacktrace() : Promise<QmlBacktraceResponse>
     {
         Log.trace("ServiceV8Debugger.requestBacktrace", []);
 
-        const response = await this.makeRequest("backtrace", {});
+        const response = await this.makeRequest<QmlBacktraceArguments, QmlBacktraceResponse>(
+            "backtrace",
+            {
 
-        if (!isQmlBacktrace(response))
-            throw new Error("Response of backtrace request has invalid format.");
+            },
+            isQmlBacktraceRequest,
+            isQmlBacktraceResponse
+        );
 
         return response;
     }
 
-    public async requestFrame(frameId : number) : Promise<QmlFrame>
+    public async requestFrame(frameId : number) : Promise<QmlFrameResponse>
     {
         Log.trace("ServiceV8Debugger.requestFrame", [ frameId ]);
 
-        const response = await this.makeRequest("frame", { number: frameId });
-
-        if (!isQmlFrame(response))
-            throw new Error("Response of frame request has invalid format.");
+        const response = await this.makeRequest<QmlFrameRequestArguments, QmlFrameResponse>(
+            "frame",
+            {
+                number: frameId
+            },
+            isQmlFrameRequest,
+            isQmlFrameResponse
+        );
 
         return response;
     }
 
-    public async requestScope(scopeId : number) : Promise<QmlScope>
+    public async requestScope(scopeId : number) : Promise<QmlScopeResponse>
     {
         Log.trace("ServiceV8Debugger.requestScope", [ scopeId ]);
 
-        const response = await this.makeRequest("scope", { number: scopeId });
-
-        if (!isQmlScope(response))
-            throw new Error("Response of scope request has invalid format.");
+        const response = await this.makeRequest<QmlScopeRequestArguments, QmlScopeResponse>(
+            "scope",
+            {
+                number: scopeId
+            },
+            isQmlScopeRequest,
+            isQmlScopeResponse,
+        );
 
         return response;
     }
 
-    public async requestLookup(handlesParam : number[]) : Promise<QmlVariable[]>
+    public async requestLookup(handlesParam : number[]) : Promise<QmlLookupResponse>
     {
         Log.trace("ServiceV8Debugger.requestLookup", [ handlesParam ]);
 
-        const response = await this.makeRequest("lookup", { handles: handlesParam });
-
-        if (typeof response !== "object")
-            throw new Error("Response of lookup request has invalid format.");
-
-        const variables : QmlVariable[] = [];
-        for (const handle of handlesParam)
-        {
-            const variable = response[handle];
-            if (!isQmlVariable(variable))
-                continue;
-
-            variables.push(variable);
-        }
-
-        return variables;
-    }
-
-    public async requestStepIn() : Promise<void>
-    {
-        Log.trace("ServiceV8Debugger.requestStepIn", []);
-
-        await this.makeRequest("continue",
+        const response = await this.makeRequest<QmlLookupRequestArguments, QmlLookupResponse>(
+            "lookup",
             {
-                stepaction: "in",
-                stepcount: 1
-            }
+                handles: handlesParam
+            },
+            isQmlLookupRequest,
+            isQmlLookupResponse
         );
+
+        return response;
     }
 
-    public async requestStepOut() : Promise<void>
+    public async requestEvaluate(frameId : number, expressionParam : string) : Promise<QmlEvaluateResponse>
     {
-        Log.trace("ServiceV8Debugger.requestStepOut", []);
+        Log.trace("ServiceV8Debugger.requestLookup", [ frameId, expressionParam ]);
 
-        await this.makeRequest("continue",
+        const response = await this.makeRequest<QmlEvalutaRequestArguments, QmlEvaluateResponse>(
+            "evaluate",
             {
-                stepaction: "out",
-                stepcount: 1
-            }
+                frame: frameId,
+                expression: expressionParam
+            },
+            isQmlEvalutaRequest,
+            isQmlEvaluateResponse,
+            false
         );
+
+        return response;
     }
 
-    public async requestStepOver() : Promise<void>
-    {
-        Log.trace("ServiceV8Debugger.requestStepOver", []);
-
-        await this.makeRequest("continue",
-            {
-                stepaction: "next",
-                stepcount: 1
-            }
-        );
-    }
-
-    public async requestContinue() : Promise<void>
+    public async requestContinue(stepAction? : "in" | "out" | "next", stepCount? : 1) : Promise<QmlContinueResponse>
     {
         Log.trace("ServiceV8Debugger.requestContinue", []);
 
-        await this.makeRequest("continue", { });
+        const result = await this.makeRequest<QmlContinueRequestArguments, QmlContinueResponse>(
+            "continue",
+            {
+                stepaction: stepAction,
+                stepcount: stepCount
+            },
+            isQmlContinueRequest,
+            isQmlContinueResponse
+        );
+
+        return result;
     }
+
 
     public connect() : Promise<void>
     {
@@ -442,7 +407,9 @@ export default class ServiceV8Debugger
                     seqId: -1,
                     resolve: resolveParam,
                     reject: rejectParam,
-                    timeoutId: tId
+                    timeoutId: tId,
+                    responseCheckFunction: (value : any) =>  { return true; },
+                    autoReject: true
                 };
 
                 await this.session!.packetManager!.writePacket(envelopePacket);
@@ -452,6 +419,8 @@ export default class ServiceV8Debugger
 
     public async disconnect() : Promise<void>
     {
+        this.requestContinue();
+
         const packet = new Packet();
         packet.appendStringUTF8("V8DEBUG");
         packet.appendStringUTF8("disconnect");
@@ -469,8 +438,9 @@ export default class ServiceV8Debugger
         Log.trace("ServiceV8Debugger.handshake", []);
 
         await this.connect();
-        const versionResponse = await this.makeRequest("version", null);
-        Log.info("V8 Service Version: " + versionResponse.V8Version);
+
+        const versionResponse = await this.requestVersion();
+        Log.info("V8 Service Version: " + versionResponse.body.V8Version);
     }
 
     public async initialize() : Promise<void>

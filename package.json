@@ -35,6 +35,10 @@
     "activationEvents": [
         "onCommand:qml-debug.version",
         "onCommand:qml-debug.copyright",
+        "onCommand:qml-debug.enableFilterFunctions",
+        "onCommand:qml-debug.disableFilterFunctions",
+        "onCommand:qml-debug.enableSortMembers",
+        "onCommand:qml-debug.disableSortMembers",
         "onDebugResolve:qml"
     ],
     "contributes": {
@@ -43,13 +47,55 @@
                 "command": "qml-debug.version",
                 "category": "QML Debug",
                 "title": "Version Information",
-                "icon": "$(copyright)"
+                "icon": "$(law)"
             },
             {
                 "command": "qml-debug.copyright",
                 "category": "QML Debug",
                 "title": "Copyright Information",
                 "icon": "$(info)"
+            },
+            {
+                "command": "qml-debug.enableFilterFunctions",
+                "category": "QML Debug",
+                "title": "Show Functions",
+                "icon": "$(filter)"
+            },
+            {
+                "command": "qml-debug.disableFilterFunctions",
+                "category": "QML Debug",
+                "title": "Hide Functions",
+                "icon": "$(filter)"
+            },
+            {
+                "command": "qml-debug.enableSortMembers",
+                "category": "QML Debug",
+                "title": "Disable Sort",
+                "icon": "$(sort-precedence)"
+            },
+            {
+                "command": "qml-debug.disableSortMembers",
+                "category": "QML Debug",
+                "title": "Enable Sort",
+                "icon": "$(sort-precedence)"
+            }
+        ],
+        "configuration": [
+            {
+                "title": "QML Debug",
+                "properties":
+                {
+                    "qml-debug.filterFunctions": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Hide member functions of object variables in Variables, Watches and Quick Watch views."
+                    },
+                    "qml-debug.sortMembers": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Sort members of object variables according to their names."
+                    }
+                }
             }
         ],
         "languages": [
@@ -63,6 +109,31 @@
                 ]
             }
         ],
+        "menus":
+        {
+            "debug/variables/context": [
+                {
+                    "command": "qml-debug.enableFilterFunctions",
+                    "group": "options",
+                    "when": "debugType == 'qml' && !qmldebug.filterFunctions"
+                },
+                {
+                    "command": "qml-debug.disableFilterFunctions",
+                    "group": "options",
+                    "when": "debugType == 'qml' && qmldebug.filterFunctions"
+                },
+                {
+                    "command": "qml-debug.enableSortMembers",
+                    "group": "options",
+                    "when": "debugType == 'qml' && !qmldebug.sortMembers"
+                },
+                {
+                    "command": "qml-debug.disableSortMembers",
+                    "group": "options",
+                    "when": "debugType == 'qml' && qmldebug.sortMembers"
+                }
+            ]
+        },
         "breakpoints": [
             {
                 "language": "qml"
@@ -116,7 +187,9 @@
                         "request": "attach",
                         "name": "Attach to QML Debugger",
                         "host": "localhost",
-                        "port": "12150"
+                        "port": 12150,
+                        "paths": [],
+                        "trace": false
                     }
                 ],
                 "configurationSnippets": [

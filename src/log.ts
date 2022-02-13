@@ -126,14 +126,14 @@ export default class Log
             }
             else if (typeof current === "function")
             {
-                traceText += ("func()");
+                traceText += ("function()");
             }
             else if (typeof current === "object")
             {
                 if (current === null)
                     traceText += "null";
                 else
-                    traceText += "object";
+                    traceText += "" + current;
             }
             else
             {

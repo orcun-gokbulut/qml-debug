@@ -11,6 +11,13 @@ export function activate(context: vscode.ExtensionContext)
 
     Log.instance().level = LogLevel.debug;
 
+    vscode.workspace.onDidChangeConfiguration(() =>
+    {
+        const configuration = vscode.workspace.getConfiguration("qml-debug");
+        vscode.commands.executeCommand('setContext', 'qmldebug.filterFunctions', configuration.get<boolean>("filterFunctions", true));
+        vscode.commands.executeCommand('setContext', 'qmldebug.sortMembers', configuration.get<boolean>("sortMembers", true));
+    });
+
 	// Register Commands
 	context.subscriptions.push(
 		vscode.commands.registerCommand('qml-debug.version',
@@ -28,6 +35,30 @@ export function activate(context: vscode.ExtensionContext)
 				"Full license text available at https://www.gnu.org/licenses/gpl-3.0.txt");
 			}
 		),
+        vscode.commands.registerCommand('qml-debug.enableFilterFunctions',
+            () =>
+            {
+                vscode.workspace.getConfiguration("qml-debug").update("filterFunctions", true);
+            }
+        ),
+        vscode.commands.registerCommand('qml-debug.disableFilterFunctions',
+            () =>
+            {
+                vscode.workspace.getConfiguration("qml-debug").update("filterFunctions", false);
+            }
+        ),
+        vscode.commands.registerCommand('qml-debug.enableSortMembers',
+            () =>
+            {
+                vscode.workspace.getConfiguration("qml-debug").update("sortMembers", true);
+            }
+        ),
+        vscode.commands.registerCommand('qml-debug.disableSortMembers',
+            () =>
+            {
+                vscode.workspace.getConfiguration("qml-debug").update("sortMembers", false);
+           }
+        ),
         vscode.debug.registerDebugAdapterDescriptorFactory("qml", new QmlDebugAdapterFactory()),
 	);
 }
