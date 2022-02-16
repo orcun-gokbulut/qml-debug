@@ -19,7 +19,7 @@ https://microsoft.github.io/debug-adapter-protocol/
 
 
 ## Current State
-Project is in early stages of development. I'm still trying to figure out intrugies of VSCode debugger extension development.
+Project is still in development. Current version is fully functional but unstable with lots of potential bugs. In addition to that, there are rooms for improvements in various places.
 Therefore, still work in progress...
 
 #### Initial Release Features
@@ -29,13 +29,14 @@ Therefore, still work in progress...
 - [x] Handshaking and snakeoil code.
 - [x] Breakpoints
 - [x] Flow Control (Pause, Step, StepIn, StepOut, Continue)
-- [ ] Backtrace and Stack Viewer
-- [ ] Editor Variable Evaluators
-- [ ] Exception Breakpoints
+- [x] Backtrace and Stack Viewer
+- [x] Editor Variable Evaluators
+- [x] Exception Breakpoints
+- [ ] Settings
+- [ ] Polishing, Bugfixing, Improving Stability and Hardening for Initial Release
 - [ ] Automatic Attach (Automaticly find Qml application and attach it)
 - [ ] Automatic C++ Debug Launcher (Launch C++ debuger before starting Qml Debug Session)
 - [ ] Automated Unit Tests
-- [ ] Bugfixing, Improving Stability and Hardening for Initial Release
 
 #### Next Major Version Features
 - [ ] Qml Scene Graph Profiler and Debugger
