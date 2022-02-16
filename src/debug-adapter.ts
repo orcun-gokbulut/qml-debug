@@ -29,23 +29,19 @@ function convertScopeName(type : number) : string
 {
     switch (type)
     {
+        default:
+        case -1:
+            return "Qml Context";
+
         case 0:
-            return "Global Variables";
+            return "Globals";
 
         case 1:
-            return "Parameters";
+            return "Arguments";
 
         case 2:
-            return "Context";
-
-        case 3:
-            return "Qml Variables";
-
         case 4:
-            return "Local Variables";
-
-        default:
-            return "Unknown Scope";
+            return "Locals";
     };
 }
 
@@ -56,12 +52,12 @@ function convertScopeType(type : number) : string
         default:
         case 0:
         case 2:
-        case 3:
-            return  "";
+            return "globals";
 
         case 1:
             return "arguments";
 
+        case 2:
         case 4:
             return "locals";
     };
@@ -497,11 +493,12 @@ export class QmlDebugSession extends LoggingDebugSession
                         (frame, index, array) =>
                         {
                             const physicalPath = this.mapPathFrom(frame.script);
-                            const parsedPath =path.parse(physicalPath);
+                            const parsedPath = path.parse(physicalPath);
                             return new StackFrame(frame.index, frame.func, new Source(parsedPath.base, physicalPath), this.mapLineNumberFrom(frame.line));
                         }
                 )
             };
+            response.body.totalFrames = result.body.frames.length;
 
             this.sendResponse(response);
         }
@@ -528,29 +525,33 @@ export class QmlDebugSession extends LoggingDebugSession
             const frame = result.body;
             response.body =
             {
-                scopes: await Promise.all(
-                    frame.scopes.map<Promise<Scope>>(
-                        async (scopeRef, index, array) =>
-                        {
-                            const scopeResult = await this.v8debugger.requestScope(scopeRef.index);
-                            if (!scopeResult.success)
-                            {
-                                response.success = false;
-                                throw new Error("Cannot make scope request. ScopeId: " + scopeRef);
-                            }
-
-                            const scope = scopeResult.body;
-                            const dapScope : DebugProtocol.Scope = new Scope(convertScopeName(scope.type), scope.index, false);
-                            dapScope.presentationHint = convertScopeType(scope.type);
-                            dapScope.variablesReference = this.mapHandleFrom(scope.object!.handle);
-                            if (scope.object?.type === "object")
-                                dapScope.namedVariables = scope.object?.value;
-
-                            return dapScope;
-                        }
-                    )
-                )
+                scopes: []
             };
+
+            for (const scopeRef of frame.scopes)
+            {
+                const scopeResult = await this.v8debugger.requestScope(scopeRef.index);
+                if (!scopeResult.success)
+                {
+                    response.success = false;
+                    throw new Error("Cannot make scope request. ScopeId: " + scopeRef);
+                }
+
+                const scope = scopeResult.body;
+                const dapScope : DebugProtocol.Scope = new Scope(convertScopeName(scope.type), scope.index, false);
+
+                if (scope.object === undefined)
+                    continue;
+
+                if (scope.object.value === 0)
+                    continue;
+
+                dapScope.presentationHint = convertScopeType(scope.type);
+                dapScope.variablesReference = this.mapHandleFrom(scope.object!.handle);
+                dapScope.namedVariables = scope.object?.value;
+
+                response.body.scopes.push(dapScope);
+            }
 
             this.sendResponse(response);
         }

@@ -1,5 +1,5 @@
 
-<img src="qml-debug.svg" alt="drawing" width="200pt"/>
+<img src="qml-debug.png" alt="drawing" width="200pt"/>
 <p>
   <img alt="Version" src="https://img.shields.io/badge/version-0.0.1-blue.svg?cacheSeconds=2592000" />
   <img src="https://img.shields.io/badge/vscode-%5E1.54.0-blue.svg" />

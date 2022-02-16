@@ -83,8 +83,7 @@
         "configuration": [
             {
                 "title": "QML Debug",
-                "properties":
-                {
+                "properties": {
                     "qml-debug.filterFunctions": {
                         "type": "boolean",
                         "default": true,
@@ -109,8 +108,7 @@
                 ]
             }
         ],
-        "menus":
-        {
+        "menus": {
             "debug/variables/context": [
                 {
                     "command": "qml-debug.enableFilterFunctions",
@@ -232,9 +230,6 @@
         "clean": "rm -rfv ./out/* ./dist/*",
         "dist-clean": "rm -rfv ./package-lock.json ./node_modules ./out ./dist"
     },
-    "bundledDependencies": [
-        "buffer-hex-dump"
-    ],
     "devDependencies": {
         "@types/glob": "^7.1.4",
         "@types/mocha": "^9.0.0",
@@ -254,7 +249,7 @@
     "dependencies": {
         "@vscode/debugadapter": "^1.51.0",
         "@vscode/debugprotocol": "^1.51.0",
-        "buffer-hex-dump": "file:../buffer-hex-dump",
+        "buffer-hex": "^1.0.0",
         "colors": "^1.4.0",
         "module-alias": "^2.2.2",
         "promise-socket": "^7.0.0",
