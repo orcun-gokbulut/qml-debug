@@ -3,7 +3,7 @@
     "publisher": "orcun-gokbulut",
     "displayName": "QML Debug",
     "description": "Visual Studio Code debugging support for Qt QML language",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "icon": "qml-debug.png",
     "author": {
         "name": "Y. Orçun Gökbulut",

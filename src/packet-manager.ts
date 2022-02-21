@@ -5,7 +5,8 @@ import Packet from '@qml-debug/packet';
 
 import { Socket } from "net";
 import PromiseSocket from "promise-socket";
-import * as BufferHexDump from "buffer-hex-dump";
+import { BufferHex, BufferHexOptions } from "buffer-hex";
+import { TerminalColor } from "terminal-styler";
 
 
 type PacketHandlerCallback = (header : string, data : Packet) => boolean;
@@ -34,14 +35,14 @@ export default class PacketManager
         Log.debug(
             () =>
             {
-                const options : BufferHexDump.Options =
+                const options : BufferHexOptions =
                 {
                     offsetStyle:
                     {
-                        foregroundColor: BufferHexDump.Color.green
+                        foregroundColor: TerminalColor.green
                     }
                 };
-                return "Raw Data Received:\n" + BufferHexDump.dump(data, undefined, undefined, options);
+                return "Raw Data Received:\n" + BufferHex.dump(data, undefined, undefined, options);
             }
         );
         this.receivePacket(data);
@@ -173,14 +174,14 @@ export default class PacketManager
             Log.debug(
                 () =>
                 {
-                    const options : BufferHexDump.Options =
+                    const options : BufferHexOptions =
                     {
                         offsetStyle: {
-                            foregroundColor: BufferHexDump.Color.red
+                            foregroundColor: TerminalColor.red
                         }
                     };
 
-                    return "Raw Data Transfered:\n" + BufferHexDump.dump(buffer, undefined, undefined, options);
+                    return "Raw Data Transfered:\n" + BufferHex.dump(buffer, undefined, undefined, options);
                 }
             );
 

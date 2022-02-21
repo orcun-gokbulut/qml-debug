@@ -51,7 +51,6 @@ function convertScopeType(type : number) : string
     {
         default:
         case 0:
-        case 2:
             return "globals";
 
         case 1:
