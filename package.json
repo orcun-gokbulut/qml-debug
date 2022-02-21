@@ -144,6 +144,66 @@
                 "program": "./out/debug-adapter.js",
                 "runtime": "node",
                 "configurationAttributes": {
+                    "launch": {
+                        "type": "object",
+                        "default": {},
+                        "required": [
+                            "program"
+                        ],
+                        "properties": {
+                          "program": {
+                                "type": "string",
+                                "description": "Path of the executable binary.",
+                                "default": "${workspaceRoot}/a.out"
+                            },
+                            "args": {
+                                "type": "array",
+                                "description": "Command line argumens that will be given to program at launch.",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "default": []
+                            },
+                            "type": {
+                                "type": "string",
+                                "description": "Debugger type.",
+                                "default": "qml"
+                            },
+                            "cwd": {
+                                "type": "string",
+                                "description": "Current working directory that will be set when the program launched.",
+                                "default": "."
+                            },
+
+                            "environment": {
+                                "type": "array",
+                                "description": "Environment variables that will be set when the program launched.",
+                                "items": {
+                                    "type": "object",
+                                    "default": {},
+                                    "properties": {
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "value": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "default": []
+                            },
+                            "envFile": {
+                                "type": "string",
+                                "description": "Environment file that defines environment variables that will be set when the program launched.",
+                                "default": "${workspaceFolder}/.env"
+                            },
+                            "externalConsole": {
+                                "type": "boolean",
+                                "description": "Launch the program in external console.",
+                                "default": false
+                            }
+                        }
+                    },
                     "attach": {
                         "required": [
                             "host",
@@ -170,11 +230,6 @@
                                         ]
                                     }
                                 }
-                            },
-                            "trace": {
-                                "type": "boolean",
-                                "description": "Enable logging of the Debug Adapter Protocol.",
-                                "default": true
                             }
                         }
                     }
@@ -183,14 +238,38 @@
                     {
                         "type": "qml",
                         "request": "attach",
-                        "name": "Attach to QML Debugger",
+                        "name": "QML Debug: Launch",
                         "host": "localhost",
                         "port": 12150,
                         "paths": [],
                         "trace": false
+                    },
+                    {
+                        "type": "qml",
+                        "request": "launch",
+                        "name": "QML Debug: Attach",
+                        "args": [],
+                        "cwd": ".",
+                        "environment": [],
+                        "externalConsole": false,
+                        "paths": []
                     }
                 ],
                 "configurationSnippets": [
+                    {
+                        "label": "QML Debug: Launch",
+                        "description": "A new configuration for 'debugging' QML based application. You can only attach to QML based application.",
+                        "body": {
+                            "name": "QML Debug: Attach",
+                            "type": "qml",
+                            "request": "launch",
+                            "program": "^\"\\${workspaceFolder}/a.out\"",
+                            "cwd": "^\"\\${workspaceFolder}\"",
+                            "paths": {
+                                "qrc:/qml": "^\"\\${workspaceFolder}/<Folder that contain qml files>\""
+                            }
+                        }
+                    },
                     {
                         "label": "QML Debug: Attach",
                         "description": "A new configuration for 'debugging' QML based application. You can only attach to QML based application.",
