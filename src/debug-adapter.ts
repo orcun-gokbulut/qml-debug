@@ -6,10 +6,15 @@ import ServiceDeclarativeDebugClient from '@qml-debug/service-declarative-debug-
 import PacketManager from '@qml-debug/packet-manager';
 import { QmlEvent, QmlBreakEventBody, isQmlBreakEvent } from '@qml-debug/qml-messages';
 
-import path = require('path');
 import * as vscode from 'vscode';
 import { InitializedEvent, LoggingDebugSession, Response, StoppedEvent, TerminatedEvent, Thread, StackFrame, Source, Scope, Variable, InvalidatedEvent } from '@vscode/debugadapter';
 import { DebugProtocol } from '@vscode/debugprotocol';
+
+import * as path from "path";
+import * as envfile from "envfile";
+import * as fs from "fs";
+import { promisify } from 'util';
+
 
 interface QmlBreakpoint
 {
@@ -18,11 +23,27 @@ interface QmlBreakpoint
     line : number;
 }
 
-interface QmlDebugSessionAttachArguments extends DebugProtocol.AttachRequestArguments
+interface QmlConfigurationArguments extends DebugProtocol.AttachRequestArguments
 {
-    host : string;
-    port : number;
-    paths : { [key: string] : string };
+    host? : string;
+    port? : number;
+    paths? : { [key: string] : string };
+}
+
+interface QmlLaunchConfigurationArguments extends QmlConfigurationArguments
+{
+    program : string;
+    args? : string[];
+    type : string;
+    cwd? : string;
+    environment? : { [variable : string] : string }[];
+    envFile? : string;
+    externalConsole? : boolean;
+}
+
+interface QmlAttachConfigurationArguments extends QmlConfigurationArguments
+{
+
 }
 
 function convertScopeName(type : number) : string
@@ -77,6 +98,8 @@ export class QmlDebugSession extends LoggingDebugSession
     protected columnsStartFromZero = false;
     private filterFunctions = true;
     private sortMembers = true;
+
+    private terminal? : vscode.Terminal;
 
     public get packetManager() : PacketManager
     {
@@ -233,14 +256,14 @@ export class QmlDebugSession extends LoggingDebugSession
         /*WILL BE IMPLEMENTED*/response.body.supportsExceptionOptions = false;
         /*WILL BE IMPLEMENTED*/response.body.supportsValueFormattingOptions = false;
         /*WILL BE IMPLEMENTED*/response.body.supportsExceptionInfoRequest = false;
-        response.body.supportTerminateDebuggee = false;
+        response.body.supportTerminateDebuggee = true;
         response.body.supportSuspendDebuggee = false;
         /*WILL BE IMPLEMENTED*/response.body.supportsDelayedStackTraceLoading = true;
         response.body.supportsLoadedSourcesRequest = false;
         /*WILL BE IMPLEMENTED*/response.body.supportsLogPoints = false;
         response.body.supportsTerminateThreadsRequest = false;
         /*WILL BE IMPLEMENTED*/response.body.supportsSetExpression = false;
-        response.body.supportsTerminateRequest = false;
+        response.body.supportsTerminateRequest = true;
         response.body.supportsDataBreakpoints = false;
         response.body.supportsReadMemoryRequest = false;
         response.body.supportsWriteMemoryRequest = false;
@@ -259,29 +282,107 @@ export class QmlDebugSession extends LoggingDebugSession
             await this.qmlDebugger.initialize();
             await this.v8debugger.initialize();
             await this.declarativeDebugClient.initialize();
+
+            this.sendResponse(response);
         }
         catch (error)
         {
             this.raiseError(response, 1001, "Cannot initialize. " + error);
-            return;
         }
-
-
-        this.sendResponse(response);
     }
 
-    protected async launchRequest(response: DebugProtocol.LaunchResponse, args: DebugProtocol.LaunchRequestArguments, request?: DebugProtocol.Request) : Promise<void>
+    protected async launchRequest(response: DebugProtocol.LaunchResponse, args: QmlLaunchConfigurationArguments, request?: DebugProtocol.Request) : Promise<void>
     {
         Log.trace("QmlDebugSession.launchRequest", [ response, args, request ]);
 
+        const procesEnv = process.env;
+
+        if (args.envFile !== undefined)
+        {
+            const fileContent = fs.readFileSync(args.envFile);
+            const envContent = envfile.parse(fileContent.toString());
+
+            for (const [ variable, value ] of Object.entries(envContent))
+                procesEnv[variable] = value;
+        }
+
+        if (args.environment !== undefined &&
+            Object.keys(args.environment).length > 0)
+        {
+            for (const entry of args.environment)
+                procesEnv[entry["name"]] = entry["value"];
+        }
+
+        const processArgs : string[] = [];
+        if (args.args !== undefined)
+        {
+            for (const arg of args.args)
+                processArgs.push(arg);
+        };
+
+        this.packetManager.host = "127.0.0.1";
+        if (args.host !== undefined)
+            this.packetManager.host = args.host;
+
+        this.packetManager.port = 12150;
+        if (args.port !== undefined)
+            this.packetManager.port = args.port;
+
+        processArgs.push("-qmljsdebugger=host:" + this.packetManager.host + ",port:" + this.packetManager.port + ",block,services:DebugMessages,QmlDebugger,V8Debugger");
+
+        const terminalOptions : vscode.TerminalOptions =
+        {
+            name: "QML Debug",
+            shellPath: args.program,
+            shellArgs: processArgs,
+            cwd: args.cwd,
+            env: procesEnv,
+            strictEnv: true,
+            hideFromUser: false,
+            message: "QML Launch Commencing..."
+        };
+
+        try
+        {
+            this.terminal = vscode.window.createTerminal(terminalOptions);
+            const processId = await this.terminal.processId;
+
+            vscode.window.onDidCloseTerminal(
+                (t) =>
+                {
+                    if (t !== this.terminal)
+                        return;
+
+                    this.sendEvent(new TerminatedEvent());
+                }
+            );
+
+            const setTimeOutPromise = promisify(setTimeout);
+            await setTimeOutPromise(1000);
+
+            await this.packetManager.connect();
+            await this.declarativeDebugClient.handshake();
+            await this.v8debugger.handshake();
+            this.sendResponse(response);
+        }
+        catch (error)
+        {
+            this.raiseError(response, 1003, "Cannot launch program. "+ error);
+        }
     }
 
-    protected async attachRequest(response: DebugProtocol.AttachResponse, args: QmlDebugSessionAttachArguments, request?: DebugProtocol.Request): Promise<void>
+    protected async attachRequest(response : DebugProtocol.AttachResponse, args : QmlAttachConfigurationArguments, request? : DebugProtocol.Request) : Promise<void>
     {
         Log.trace("QmlDebugSession.attachRequest", [ response, args, request ]);
 
-        this. packetManager.host = args.host;
-        this.packetManager.port = args.port;
+        this.packetManager.host = "127.0.0.1";
+        if (args.host !== undefined)
+            this.packetManager.host = args.host;
+
+        this.packetManager.port = 12515;
+        if (args.port !== undefined)
+            this.packetManager.port = args.port;
+
         if (args.paths !== undefined)
             this.pathMappings = new Map(Object.entries(args.paths));
 
@@ -299,6 +400,20 @@ export class QmlDebugSession extends LoggingDebugSession
         }
 
         this.sendEvent(new InitializedEvent());
+    }
+
+    protected async terminateRequest(response : DebugProtocol.TerminateResponse, args : DebugProtocol.TerminateArguments, request? : DebugProtocol.Request) : Promise<void>
+    {
+        if (this.terminal === undefined)
+            return;
+
+        this.terminal.processId.then(
+            (value) =>
+            {
+                process.kill(value!);
+                this.sendResponse(response);
+            }
+        );
     }
 
     protected async disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments, request?: DebugProtocol.Request): Promise<void>

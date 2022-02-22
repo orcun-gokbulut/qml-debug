@@ -151,18 +151,16 @@
                             "program"
                         ],
                         "properties": {
-                          "program": {
+                            "program": {
                                 "type": "string",
-                                "description": "Path of the executable binary.",
-                                "default": "${workspaceRoot}/a.out"
+                                "description": "Path of the executable binary."
                             },
                             "args": {
                                 "type": "array",
                                 "description": "Command line argumens that will be given to program at launch.",
                                 "items": {
                                     "type": "string"
-                                },
-                                "default": []
+                                }
                             },
                             "type": {
                                 "type": "string",
@@ -171,10 +169,8 @@
                             },
                             "cwd": {
                                 "type": "string",
-                                "description": "Current working directory that will be set when the program launched.",
-                                "default": "."
+                                "description": "Current working directory that will be set when the program launched."
                             },
-
                             "environment": {
                                 "type": "array",
                                 "description": "Environment variables that will be set when the program launched.",
@@ -189,18 +185,28 @@
                                             "type": "string"
                                         }
                                     }
-                                },
-                                "default": []
+                                }
                             },
                             "envFile": {
                                 "type": "string",
-                                "description": "Environment file that defines environment variables that will be set when the program launched.",
-                                "default": "${workspaceFolder}/.env"
+                                "description": "Environment file that defines environment variables that will be set when the program launched."
                             },
                             "externalConsole": {
                                 "type": "boolean",
                                 "description": "Launch the program in external console.",
                                 "default": false
+                            },
+                            "paths": {
+                                "description": "List of qml source folders resource paths (qrc:/) to physical path mappings.",
+                                "type": "object",
+                                "patternProperties": {
+                                    ".*": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                }
                             }
                         }
                     },
@@ -239,18 +245,16 @@
                         "type": "qml",
                         "request": "attach",
                         "name": "QML Debug: Launch",
-                        "host": "localhost",
+                        "host": "127.0.0.1",
                         "port": 12150,
-                        "paths": [],
-                        "trace": false
+                        "paths": []
                     },
                     {
                         "type": "qml",
                         "request": "launch",
                         "name": "QML Debug: Attach",
-                        "args": [],
-                        "cwd": ".",
-                        "environment": [],
+                        "host": "127.0.0.1",
+                        "port": 12150,
                         "externalConsole": false,
                         "paths": []
                     }
@@ -260,7 +264,7 @@
                         "label": "QML Debug: Launch",
                         "description": "A new configuration for 'debugging' QML based application. You can only attach to QML based application.",
                         "body": {
-                            "name": "QML Debug: Attach",
+                            "name": "QML Debug: Launch",
                             "type": "qml",
                             "request": "launch",
                             "program": "^\"\\${workspaceFolder}/a.out\"",
@@ -330,7 +334,9 @@
         "@vscode/debugprotocol": "^1.51.0",
         "buffer-hex": "^1.0.0",
         "colors": "^1.4.0",
+        "envfile": "^6.17.0",
         "module-alias": "^2.2.2",
+        "node-env-file": "^0.1.8",
         "promise-socket": "^7.0.0",
         "source-map-support": "^0.5.21"
     }
