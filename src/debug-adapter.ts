@@ -1,15 +1,15 @@
-import Log from '@qml-debug/log';
-import ServiceDebugMessages from '@qml-debug/service-debug-messages';
-import ServiceQmlDebugger  from '@qml-debug/service-qml-debugger';
-import ServiceNativeDebugger from '@qml-debug/service-v8-debugger';
-import ServiceDeclarativeDebugClient from '@qml-debug/service-declarative-debug-client';
-import PacketManager from '@qml-debug/packet-manager';
-import { QmlEvent, QmlBreakEventBody, isQmlBreakEvent } from '@qml-debug/qml-messages';
+import Log from "@qml-debug/log";
+import ServiceDebugMessages from "@qml-debug/service-debug-messages";
+import ServiceQmlDebugger  from "@qml-debug/service-qml-debugger";
+import ServiceNativeDebugger from "@qml-debug/service-v8-debugger";
+import ServiceDeclarativeDebugClient from "@qml-debug/service-declarative-debug-client";
+import PacketManager from "@qml-debug/packet-manager";
+import { QmlEvent, QmlBreakEventBody, isQmlBreakEvent } from "@qml-debug/qml-messages";
 
-import path = require('path');
-import * as vscode from 'vscode';
-import { InitializedEvent, LoggingDebugSession, Response, StoppedEvent, TerminatedEvent, Thread, StackFrame, Source, Scope, Variable, InvalidatedEvent } from '@vscode/debugadapter';
-import { DebugProtocol } from '@vscode/debugprotocol';
+import path = require("path");
+import * as vscode from "vscode";
+import { InitializedEvent, LoggingDebugSession, Response, StoppedEvent, TerminatedEvent, Thread, StackFrame, Source, Scope, Variable, InvalidatedEvent } from "@vscode/debugadapter";
+import { DebugProtocol } from "@vscode/debugprotocol";
 
 interface QmlBreakpoint
 {
@@ -42,7 +42,7 @@ function convertScopeName(type : number) : string
         case 2:
         case 4:
             return "Locals";
-    };
+    }
 }
 
 function convertScopeType(type : number) : string
@@ -59,7 +59,7 @@ function convertScopeType(type : number) : string
         case 2:
         case 4:
             return "locals";
-    };
+    }
 }
 
 export class QmlDebugSession extends LoggingDebugSession
@@ -91,7 +91,9 @@ export class QmlDebugSession extends LoggingDebugSession
     public mapPathTo(filename : string) : string
     {
         const parsed = path.parse(path.normalize(filename));
-        for (const [ virtualPath, physicalPath ] of this.pathMappings)
+
+        // JUST WOW - It does not want full path only wants file name...
+        /*for (const [ virtualPath, physicalPath ] of this.pathMappings)
         {
             if (parsed.dir.startsWith(physicalPath))
             {
@@ -100,7 +102,9 @@ export class QmlDebugSession extends LoggingDebugSession
             }
         }
 
-        return filename;
+        return filename;*/
+
+        return parsed.base;
     }
 
     public mapPathFrom(filename : string) : string
@@ -161,7 +165,7 @@ export class QmlDebugSession extends LoggingDebugSession
         this.sendEvent(new TerminatedEvent());
     }
 
-    public onEvent(event : QmlEvent<any>)
+    public onEvent(event : QmlEvent<any>) : void
     {
         if (event.event === "break")
         {
@@ -182,11 +186,11 @@ export class QmlDebugSession extends LoggingDebugSession
 
             if (breakpointIds.length === 0)
             {
-                this.sendEvent(new StoppedEvent('step', this.mainQmlThreadId));
+                this.sendEvent(new StoppedEvent("step", this.mainQmlThreadId));
             }
             else
             {
-                const stoppedEvent : DebugProtocol.StoppedEvent = new StoppedEvent('breakpoint', this.mainQmlThreadId);
+                const stoppedEvent : DebugProtocol.StoppedEvent = new StoppedEvent("breakpoint", this.mainQmlThreadId);
                 stoppedEvent.body.hitBreakpointIds = breakpointIds;
                 stoppedEvent.body.description = "Breakpoint hit at " + filename + " on line(s) " + breakpointIds + ".";
                 this.sendEvent(stoppedEvent);
@@ -495,7 +499,7 @@ export class QmlDebugSession extends LoggingDebugSession
                             const parsedPath = path.parse(physicalPath);
                             return new StackFrame(frame.index, frame.func, new Source(parsedPath.base, physicalPath), this.mapLineNumberFrom(frame.line));
                         }
-                )
+                    )
             };
             response.body.totalFrames = result.body.frames.length;
 
@@ -533,7 +537,9 @@ export class QmlDebugSession extends LoggingDebugSession
                 if (!scopeResult.success)
                 {
                     response.success = false;
+                    /* eslint-disable */
                     throw new Error("Cannot make scope request. ScopeId: " + scopeRef);
+                    /* eslint-enable */
                 }
 
                 const scope = scopeResult.body;
@@ -733,10 +739,6 @@ export class QmlDebugSession extends LoggingDebugSession
             {
                 response.body.result = "undefined";
             }
-            else if (result.body.type === "string")
-            {
-                response.body.result = "\"" + result.body.value + "\"";
-            }
 
             this.sendResponse(response);
         }
@@ -842,7 +844,7 @@ export class QmlDebugSession extends LoggingDebugSession
         }
     }
 
-    constructor(session : vscode.DebugSession)
+    public constructor(session : vscode.DebugSession)
     {
         super();
 
@@ -863,7 +865,7 @@ export class QmlDebugSession extends LoggingDebugSession
 
         Log.trace("QmlDebugSession.continueRequest", [ session ]);
     }
-};
+}
 
 export class QmlDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory
 {
@@ -874,4 +876,4 @@ export class QmlDebugAdapterFactory implements vscode.DebugAdapterDescriptorFact
         return new vscode.DebugAdapterInlineImplementation(new QmlDebugSession(session));
     }
 
-};
+}

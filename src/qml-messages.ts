@@ -10,7 +10,7 @@ import
     isQmlVariable,
     QmlBreakpoint,
     isQmlBreakpoint
-} from '@qml-debug/qml-types';
+} from "@qml-debug/qml-types";
 
 
 // MESSAGE
@@ -20,7 +20,7 @@ export interface QmlMessage
 {
     type : "request" | "event" | "response";
     seq : number;
-};
+}
 
 export function isQmlMessage(value : any) : value is QmlMessage
 {
@@ -45,7 +45,7 @@ export interface QmlRequest<QmlArgumentsType> extends QmlMessage
     type : "request";
     command : string;
     arguments : QmlArgumentsType;
-};
+}
 
 export function isQmlRequest(value : any) : value is QmlRequest<any>
 {
@@ -75,7 +75,7 @@ export interface QmlResponse<QmlResponseBody> extends QmlMessage
     success : boolean;
     running : boolean;
     body : QmlResponseBody;
-};
+}
 
 export function isQmlResponse(value : any) : value is QmlResponse<any>
 {
@@ -103,7 +103,7 @@ export interface QmlEvent<QmlEventBody> extends QmlMessage
     type : "event";
     event : string;
     body : QmlEventBody;
-};
+}
 
 export function isQmlEvent<QmlEventBody>(value : any) : value is QmlEvent<QmlEventBody>
 {
@@ -123,10 +123,7 @@ export function isQmlEvent<QmlEventBody>(value : any) : value is QmlEvent<QmlEve
 // VERSION
 ///////////////////////////////////////////////////////////////////////
 
-export interface QmlVersionRequest extends QmlRequest<null>
-{
-
-};
+export type QmlVersionRequest = QmlRequest<null>;
 
 export function isQmlVersionRequest(value : any) : value is QmlVersionRequest
 {
@@ -150,7 +147,7 @@ export interface QmlVersionBody
     UnpausedEvaluate : boolean;
     V8Version : string;
     /* eslint-enable */
-};
+}
 
 export function isQmlVersionBody(value : any) : value is QmlVersionBody
 {
@@ -170,7 +167,7 @@ export function isQmlVersionBody(value : any) : value is QmlVersionBody
 export interface QmlVersionResponse extends QmlResponse<QmlVersionBody>
 {
     command : "version";
-};
+}
 
 export function isQmlVersionResponse(value : any) : value is QmlVersionResponse
 {
@@ -192,11 +189,12 @@ export function isQmlVersionResponse(value : any) : value is QmlVersionResponse
 
 export interface QmlSetBreakpointArguments
 {
-    type : string,
-    target : string,
-    line : number
-    enabled : boolean,
-};
+    type : string;
+    target : string;
+    line : number;
+    enabled : boolean;
+    ignoreCount : number;
+}
 
 export function isQmlSetBreakpointArguments(value : any) : value is QmlSetBreakpointArguments
 {
@@ -204,6 +202,7 @@ export function isQmlSetBreakpointArguments(value : any) : value is QmlSetBreakp
         typeof value.type !== "string" ||
         typeof value.target !== "string" ||
         typeof value.line !== "number" ||
+        typeof value.ignoreCount !== "number" ||
         typeof value.enabled !== "boolean")
     {
         /* eslint-disable */
@@ -214,10 +213,7 @@ export function isQmlSetBreakpointArguments(value : any) : value is QmlSetBreakp
     return true;
 }
 
-export interface QmlSetBreakpointRequest extends QmlRequest<QmlSetBreakpointArguments>
-{
-
-};
+export type QmlSetBreakpointRequest = QmlRequest<QmlSetBreakpointArguments>;
 
 export function isQmlSetBreakpointRequest(value : any) : value is QmlSetBreakpointRequest
 {
@@ -236,7 +232,7 @@ export function isQmlSetBreakpointRequest(value : any) : value is QmlSetBreakpoi
 export interface QmlSetBreakpointResponse extends QmlResponse<QmlBreakpoint>
 {
     command : "breakpoint";
-};
+}
 
 export function isQmlSetBreakpointResponse(value : any) : value is QmlSetBreakpointResponse
 {
@@ -258,8 +254,8 @@ export function isQmlSetBreakpointResponse(value : any) : value is QmlSetBreakpo
 
 export interface QmlClearBreakpointArguments
 {
-    breakpoint : number
-};
+    breakpoint : number;
+}
 
 export function isQmlCancelBreakpointArguments(value : any) : value is QmlClearBreakpointArguments
 {
@@ -274,16 +270,12 @@ export function isQmlCancelBreakpointArguments(value : any) : value is QmlClearB
     return true;
 }
 
-export interface QmlClearBreakpointRequest extends QmlRequest<QmlClearBreakpointArguments>
-{
-
-};
+export type QmlClearBreakpointRequest = QmlRequest<QmlClearBreakpointArguments>;
 
 export function isQmlClearBreakpointRequest(value : any) : value is QmlClearBreakpointRequest
 {
     if (!isQmlRequest(value) ||
-        value.command !== "clearbreakpoint" ||
-        !isQmlClearBreakpointRequest(value.arguments))
+        value.command !== "clearbreakpoint")
     {
         /* eslint-disable */
         return false;
@@ -296,7 +288,7 @@ export function isQmlClearBreakpointRequest(value : any) : value is QmlClearBrea
 export interface QmlClearBreakpointResponse extends QmlResponse<undefined>
 {
     command : "clearbreakpoint";
-};
+}
 
 export function isClearSetBreakpointResponse(value : any) : value is QmlClearBreakpointResponse
 {
@@ -317,9 +309,9 @@ export function isClearSetBreakpointResponse(value : any) : value is QmlClearBre
 
 export interface QmlSetExceptionBreakArguments
 {
-    type : string,
-    enabled : boolean
-};
+    type : string;
+    enabled : boolean;
+}
 
 export function isQmlSetExceptionBreakArguments(value : any) : value is QmlSetExceptionBreakArguments
 {
@@ -335,10 +327,7 @@ export function isQmlSetExceptionBreakArguments(value : any) : value is QmlSetEx
     return true;
 }
 
-export interface QmlSetExceptionBreakRequest extends QmlRequest<QmlSetExceptionBreakArguments>
-{
-
-};
+export type QmlSetExceptionBreakRequest = QmlRequest<QmlSetExceptionBreakArguments>;
 
 export function isQmlSetExceptionBreakRequest(value : any) : value is QmlSetExceptionBreakRequest
 {
@@ -357,7 +346,7 @@ export function isQmlSetExceptionBreakRequest(value : any) : value is QmlSetExce
 export interface QmlSetExceptionBreakResponse extends QmlResponse<QmlSetExceptionBreakArguments>
 {
     command : "setexceptionbreak";
-};
+}
 
 export function isQmlSetExceptionBreakResponse(value : any) : value is QmlSetExceptionBreakResponse
 {
@@ -381,11 +370,12 @@ export interface QmlBreakEventBody
 {
     breakpoints : number[];
     invocationText : string;
-    script: {
+    script:
+    {
         name : string;
     };
     sourceLine : number;
-};
+}
 
 export function isQmlBreakEventBody(value : any) : value is QmlBreakEventBody
 {
@@ -412,7 +402,7 @@ export function isQmlBreakEventBody(value : any) : value is QmlBreakEventBody
 export interface QmlBreakEvent extends QmlEvent<QmlBreakEventBody>
 {
     command : "breakpoint";
-};
+}
 
 export function isQmlBreakEvent(value : any) : value is QmlBreakEvent
 {
@@ -428,14 +418,15 @@ export function isQmlBreakEvent(value : any) : value is QmlBreakEvent
     return true;
 }
 
+
 // CONTINUE
 ///////////////////////////////////////////////////////////////////////
 
 export interface QmlContinueRequestArguments
 {
-    stepaction? : "in" | "out" | "next",
-    stepcount? : 1 | undefined
-};
+    stepaction? : "in" | "out" | "next";
+    stepcount? : 1 | undefined;
+}
 
 export function isQmlContinueRequestArguments(value : any) : value is QmlContinueRequestArguments
 {
@@ -451,10 +442,7 @@ export function isQmlContinueRequestArguments(value : any) : value is QmlContinu
     return true;
 }
 
-export interface QmlContinueRequest extends QmlRequest<QmlContinueRequestArguments>
-{
-
-};
+export type QmlContinueRequest = QmlRequest<QmlContinueRequestArguments>;
 
 export function isQmlContinueRequest(value : any) : value is QmlContinueRequest
 {
@@ -473,7 +461,7 @@ export function isQmlContinueRequest(value : any) : value is QmlContinueRequest
 export interface QmlContinueResponse extends QmlResponse<undefined>
 {
     command : "continue";
-};
+}
 
 export function isQmlContinueResponse(value : any) : value is QmlContinueResponse
 {
@@ -495,7 +483,7 @@ export function isQmlContinueResponse(value : any) : value is QmlContinueRespons
 export interface QmlBacktraceArguments
 {
 
-};
+}
 
 export function isQmlBacktraceArguments(value : any) : value is QmlBacktraceArguments
 {
@@ -505,10 +493,7 @@ export function isQmlBacktraceArguments(value : any) : value is QmlBacktraceArgu
     return true;
 }
 
-export interface QmlBacktraceRequest extends QmlRequest<QmlBacktraceArguments>
-{
-
-};
+export type QmlBacktraceRequest = QmlRequest<QmlBacktraceArguments>;
 
 export function isQmlBacktraceRequest(value : any) : value is QmlBacktraceRequest
 {
@@ -527,7 +512,7 @@ export function isQmlBacktraceRequest(value : any) : value is QmlBacktraceReques
 export interface QmlBacktraceResponse extends QmlResponse<QmlBacktrace>
 {
     command : "backtrace";
-};
+}
 
 export function isQmlBacktraceResponse(value : any) : value is QmlBacktraceResponse
 {
@@ -550,7 +535,7 @@ export function isQmlBacktraceResponse(value : any) : value is QmlBacktraceRespo
 export interface QmlFrameRequestArguments
 {
     number: number;
-};
+}
 
 export function isQmlFrameRequestArguments(value : any) : value is QmlFrameRequestArguments
 {
@@ -564,10 +549,7 @@ export function isQmlFrameRequestArguments(value : any) : value is QmlFrameReque
 
     return true;
 }
-export interface QmlFrameRequest extends QmlRequest<QmlFrameRequestArguments>
-{
-
-};
+export type QmlFrameRequest = QmlRequest<QmlFrameRequestArguments>;
 
 export function isQmlFrameRequest(value : any) : value is QmlFrameRequest
 {
@@ -582,10 +564,7 @@ export function isQmlFrameRequest(value : any) : value is QmlFrameRequest
     return true;
 }
 
-export interface QmlFrameResponse extends QmlResponse<QmlFrame>
-{
-
-};
+export type QmlFrameResponse = QmlResponse<QmlFrame>;
 
 export function isQmlFrameResponse(value : any) : value is QmlFrameResponse
 {
@@ -607,7 +586,7 @@ export function isQmlFrameResponse(value : any) : value is QmlFrameResponse
 export interface QmlScopeRequestArguments
 {
     number : number;
-};
+}
 
 export function isQmlScopeRequestArgument(value : any) : value is QmlScopeRequestArguments
 {
@@ -622,10 +601,7 @@ export function isQmlScopeRequestArgument(value : any) : value is QmlScopeReques
     return true;
 }
 
-export interface QmlScopeRequest extends QmlRequest<QmlScopeRequestArguments>
-{
-
-};
+export type QmlScopeRequest = QmlRequest<QmlScopeRequestArguments>;
 
 export function isQmlScopeRequest(value : any) : value is QmlScopeRequest
 {
@@ -640,10 +616,7 @@ export function isQmlScopeRequest(value : any) : value is QmlScopeRequest
     return true;
 }
 
-export interface QmlScopeResponse extends QmlResponse<QmlScope>
-{
-
-};
+export type QmlScopeResponse = QmlResponse<QmlScope>;
 
 export function isQmlScopeResponse(value : any) : value is QmlScopeRequest
 {
@@ -665,7 +638,7 @@ export function isQmlScopeResponse(value : any) : value is QmlScopeRequest
 export interface QmlLookupRequestArguments
 {
     handles : number[];
-};
+}
 
 export function isQmlLookupRequestArgument(value : any) : value is QmlLookupRequestArguments
 {
@@ -688,10 +661,7 @@ export function isQmlLookupRequestArgument(value : any) : value is QmlLookupRequ
     return true;
 }
 
-export interface QmlLookupRequest extends QmlRequest<QmlLookupRequestArguments>
-{
-
-};
+export type QmlLookupRequest = QmlRequest<QmlLookupRequestArguments>;
 
 export function isQmlLookupRequest(value : any) : value is QmlLookupRequest
 {
@@ -710,13 +680,10 @@ export function isQmlLookupRequest(value : any) : value is QmlLookupRequest
 export interface QmlLookupBody
 {
     [ index: string ] : QmlVariable;
-};
+}
 
 
-export interface QmlLookupResponse extends QmlResponse<QmlLookupBody>
-{
-
-};
+export type QmlLookupResponse = QmlResponse<QmlLookupBody>;
 
 export function isQmlLookupResponse(value : any) : value is QmlLookupResponse
 {
@@ -750,7 +717,7 @@ export interface QmlEvalutaRequestArguments
 {
     frame : number;
     expression : string;
-};
+}
 
 export function isQmlEvalutaRequestArguments(value : any) : value is QmlEvalutaRequestArguments
 {
@@ -766,10 +733,7 @@ export function isQmlEvalutaRequestArguments(value : any) : value is QmlEvalutaR
     return true;
 }
 
-export interface QmlEvalutaRequest extends QmlRequest<QmlEvalutaRequestArguments>
-{
-
-};
+export type QmlEvalutaRequest = QmlRequest<QmlEvalutaRequestArguments>;
 
 export function isQmlEvalutaRequest(value : any) : value is QmlEvalutaRequest
 {
@@ -785,10 +749,7 @@ export function isQmlEvalutaRequest(value : any) : value is QmlEvalutaRequest
     return true;
 }
 
-export interface QmlEvaluateResponse extends QmlResponse<QmlVariable>
-{
-
-};
+export type QmlEvaluateResponse = QmlResponse<QmlVariable>;
 
 export function isQmlEvaluateResponse(value : any) : value is QmlLookupResponse
 {

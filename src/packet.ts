@@ -1,10 +1,10 @@
 export default class Packet
 {
-    private size : number = 0;
+    private size  = 0;
     private data = Buffer.alloc(0);
-    private readOffset : number = 0;
+    private readOffset  = 0;
 
-    public setData(data : Buffer, size? : number, offset? : number)
+    public setData(data : Buffer, size? : number, offset? : number) : void
     {
         if (size !== undefined && offset !== undefined)
         {
@@ -404,7 +404,7 @@ export default class Packet
         }
     }
 
-    public appendArray<ValueType>(appendFunction : (value : ValueType) => void, value : ValueType[])
+    public appendArray<ValueType>(appendFunction : (value : ValueType) => void, value : ValueType[]) : void
     {
         this.appendUInt32BE(value.length);
         for (let i = 0; i < value.length; i++)
@@ -445,16 +445,16 @@ export default class Packet
         packet.getData().copy(this.data, offset);
     }
 
-    public combine(packet : Packet)
+    public combine(packet : Packet) : void
     {
         const offset = this.size;
         this.expand(packet.getSize());
         packet.getData().copy(this.data, offset);
     }
 
-    constructor(data? : Buffer, size? : number, offset? : number)
+    public constructor(data? : Buffer, size? : number, offset? : number)
     {
         if (data !== undefined)
             this.setData(data, size, offset);
     }
-};
+}

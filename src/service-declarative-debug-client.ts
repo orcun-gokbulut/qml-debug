@@ -1,8 +1,8 @@
-import Log from '@qml-debug/log';
-import Packet from '@qml-debug/packet';
-import { QmlDebugSession } from '@qml-debug/debug-adapter';
+import Log from "@qml-debug/log";
+import Packet from "@qml-debug/packet";
+import { QmlDebugSession } from "@qml-debug/debug-adapter";
 
-import { TerminatedEvent } from '@vscode/debugadapter';
+import { TerminatedEvent } from "@vscode/debugadapter";
 
 
 export default class ServiceDeclarativeDebugClient
@@ -78,7 +78,7 @@ export default class ServiceDeclarativeDebugClient
                 Log.warning("You must enable necessary debug services by enabling them in -qmljsdebugger command line arguments. For example; ./your-application -qmljsdebugger=host:localhost,port:10222,services:DebugMessages,QmlDebugger,V8Debugger");
 
                 //this.session?.sendEvent(new TerminatedEvent());
-               // this.packetManager!.disconnect();
+                // this.packetManager!.disconnect();
             }
 
             if (!debugMessagesFound)
@@ -154,4 +154,4 @@ export default class ServiceDeclarativeDebugClient
             }
         );
     }
-};
+}

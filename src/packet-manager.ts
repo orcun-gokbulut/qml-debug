@@ -1,7 +1,7 @@
-import { TerminatedEvent } from '@vscode/debugadapter';
-import { QmlDebugSession } from '@qml-debug/debug-adapter';
-import Log from '@qml-debug/log';
-import Packet from '@qml-debug/packet';
+import { TerminatedEvent } from "@vscode/debugadapter";
+import { QmlDebugSession } from "@qml-debug/debug-adapter";
+import Log from "@qml-debug/log";
+import Packet from "@qml-debug/packet";
 
 import { Socket } from "net";
 import PromiseSocket from "promise-socket";
@@ -99,7 +99,7 @@ export default class PacketManager
         Log.success("Disconnected.");
     }
 
-    public registerHandler(header : string, callback : PacketHandlerCallback)
+    public registerHandler(header : string, callback : PacketHandlerCallback) : void
     {
         Log.trace("PacketManager.registerHandler", [ header, callback ]);
 
@@ -221,9 +221,9 @@ export default class PacketManager
         );
     }
 
-    constructor(session : QmlDebugSession)
+    public constructor(session : QmlDebugSession)
     {
         Log.trace("PacketManager.constructor", [ session ]);
         this.session = session;
     }
-};
+}

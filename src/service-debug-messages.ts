@@ -1,9 +1,9 @@
-import { OutputEvent } from '@vscode/debugadapter';
-import Log from '@qml-debug/log';
-import Packet from '@qml-debug/packet';
+import { OutputEvent } from "@vscode/debugadapter";
+import Log from "@qml-debug/log";
+import Packet from "@qml-debug/packet";
 
-import { QmlDebugSession } from '@qml-debug/debug-adapter';
-import { DebugProtocol } from '@vscode/debugprotocol';
+import { QmlDebugSession } from "@qml-debug/debug-adapter";
+import { DebugProtocol } from "@vscode/debugprotocol";
 
 
 export default class ServiceDebugMessages
@@ -54,7 +54,7 @@ export default class ServiceDebugMessages
                 break;
         }
 
-        const outputEvent : DebugProtocol.OutputEvent = new OutputEvent(typeText + ":  " + message, 'console');
+        const outputEvent : DebugProtocol.OutputEvent = new OutputEvent(typeText + ":  " + message, "console");
         outputEvent.body.source =
         {
             path: filename,
@@ -80,7 +80,7 @@ export default class ServiceDebugMessages
     {
         Log.trace("ServiceDebugMessages.initialize", []);
 
-        const outputGroupEvent : DebugProtocol.OutputEvent = new OutputEvent("QmlDebug Ouput", 'console');
+        const outputGroupEvent : DebugProtocol.OutputEvent = new OutputEvent("QmlDebug Ouput", "console");
         outputGroupEvent.body.group = "start";
         this.session?.sendEvent(outputGroupEvent);
     }
@@ -89,7 +89,7 @@ export default class ServiceDebugMessages
     {
         Log.trace("ServiceDebugMessages.deinitialize", []);
 
-        const outputGroupEvent : DebugProtocol.OutputEvent = new OutputEvent("QmlDebug Ouput", 'console');
+        const outputGroupEvent : DebugProtocol.OutputEvent = new OutputEvent("QmlDebug Ouput", "console");
         outputGroupEvent.body.group = "end";
         this.session?.sendEvent(outputGroupEvent);
     }
@@ -109,4 +109,4 @@ export default class ServiceDebugMessages
             }
         );
     }
-};
+}

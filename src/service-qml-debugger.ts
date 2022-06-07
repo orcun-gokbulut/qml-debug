@@ -1,13 +1,13 @@
-import Log  from '@qml-debug/log';
-import Packet from '@qml-debug/packet';
-import { QmlDebugSession } from '@qml-debug/debug-adapter';
+import Log  from "@qml-debug/log";
+import Packet from "@qml-debug/packet";
+import { QmlDebugSession } from "@qml-debug/debug-adapter";
 
 
 interface QmlEngine
 {
     name : string;
     debugId : number;
-};
+}
 
 interface ServiceAwaitingRequest
 {
@@ -15,7 +15,7 @@ interface ServiceAwaitingRequest
     resolve: any;
     reject: any;
     timerId : NodeJS.Timeout;
-};
+}
 
 export default class ServiceQmlDebugger
 {
@@ -95,7 +95,7 @@ export default class ServiceQmlDebugger
                 if (data !== undefined)
                     packet.combine(data);
 
-                    const envelopPacket = new Packet();
+                const envelopPacket = new Packet();
                 envelopPacket.appendStringUTF16("QmlDebugger");
                 envelopPacket.appendSubPacket(packet);
 
@@ -146,4 +146,4 @@ export default class ServiceQmlDebugger
             }
         );
     }
-};
+}

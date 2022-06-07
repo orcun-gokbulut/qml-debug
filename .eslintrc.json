@@ -1,38 +1,130 @@
 {
     "root": true,
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-        "ecmaVersion": 6,
-        "sourceType": "module"
-    },
-    "plugins": [
+    "ignorePatterns":
+    [
+        "node_modules",
+        "build",
+        "dist"
+    ],
+    "plugins":
+    [
         "@typescript-eslint"
     ],
-    "rules": {
-        "@typescript-eslint/naming-convention": "warn",
-        "@typescript-eslint/semi": [ "error", "always" ],
-        "curly": [ "warn", "multi-or-nest", "consistent" ],
-        "eqeqeq": "warn",
-        "no-throw-literal": "warn",
-        "semi": [ "error", "always" ],
-        "semi-spacing": [ "warn", { "before": false, "after": true } ],
-        "comma-style": [ "warn", "last" ],
-        "comma-spacing":  [ "warn", { "before": false, "after": true } ],
-        "object-curly-spacing": [ "warn", "always" ],
-        "array-bracket-spacing": [ "warn", "always" ],
-        "computed-property-spacing": [ "warn", "never" ],
-        "space-in-parens": [ "warn", "never" ],
-        "space-unary-ops": "warn",
-        "keyword-spacing": [ "warn", { "before": true, "after": true } ],
-        "no-labels": "error",
-        "prefer-const": "warn",
-        "space-before-function-paren": [ "warn", { "named": "never", "anonymous": "never", "asyncArrow": "always" } ],
-        "camelcase": [ "warn", { "properties": "always" } ],
-        "brace-style": [ "warn", "allman", { "allowSingleLine": true } ]
-    },
-    "ignorePatterns": [
-        "out",
-        "dist",
-        "**/*.d.ts"
+    "overrides":
+    [
+        {
+            "files": [ "*.ts" ],
+            "parserOptions":
+            {
+                "project": "tsconfig.json",
+                "ecmaVersion": 2020,
+                "sourceType": "module",
+                "createDefaultProgram": true
+            },
+            "extends":
+            [
+                "eslint:recommended",
+                "plugin:@typescript-eslint/recommended"
+
+            ],
+            "rules":
+            {
+                "indent": [ "warn", 4,
+                    {
+                        "SwitchCase" : 1,
+                        "MemberExpression": 1,
+                        "ArrayExpression": 1,
+                        "ObjectExpression": 1,
+                        "ImportDeclaration": 1
+                    }
+                ],
+                "brace-style": [ "warn", "allman", { "allowSingleLine": true } ],
+                "curly": [ "warn", "multi-or-nest", "consistent" ],
+                "eqeqeq": "warn",
+                "no-throw-literal": "warn",
+                "semi": [ "error", "always" ],
+                "semi-spacing": [ "warn", { "before": false, "after": true } ],
+                "comma-style": [ "warn", "last"],
+                "comma-spacing": [ "warn", { "before": false, "after": true } ],
+                "quotes": [ "warn", "double" ],
+                "object-curly-spacing": ["warn", "always"],
+                "array-bracket-spacing": ["warn", "always"],
+                "computed-property-spacing": ["warn", "never"],
+                "space-in-parens": [ "warn", "never"],
+                "space-unary-ops": "warn",
+                "keyword-spacing": [ "warn", { "before": true, "after": true }],
+                "no-labels": "error",
+                "prefer-const": "warn",
+                "space-before-function-paren": [ "warn", { "named": "never", "anonymous": "never", "asyncArrow": "always" } ],
+                "camelcase": "off",
+                "no-unused-vars": "off",
+                "no-empty": "off",
+                "no-constant-condition": [ "error", { "checkLoops": false } ],
+
+                "@typescript-eslint/semi": [ "error", "always" ],
+                "@typescript-eslint/array-type": [ "error", { "default": "array", "readonly": "array" } ],
+                "@typescript-eslint/await-thenable": [ "error" ],
+                "@typescript-eslint/consistent-indexed-object-style": [ "error", "index-signature" ],
+                "@typescript-eslint/consistent-type-definitions": [ "error", "interface" ],
+                "@typescript-eslint/consistent-type-imports": [ "error", { "prefer": "no-type-imports" } ],
+                "@typescript-eslint/explicit-member-accessibility": [ "error" ],
+                "@typescript-eslint/explicit-module-boundary-types": [ "error", { "allowArgumentsExplicitlyTypedAsAny": true } ],
+                "@typescript-eslint/member-delimiter-style": [ "error" ],
+                "@typescript-eslint/method-signature-style": [ "error", "method" ],
+                "@typescript-eslint/no-explicit-any": [ "off" ],
+                "@typescript-eslint/no-base-to-string": [ "error" ],
+                "@typescript-eslint/no-confusing-non-null-assertion": [ "error" ],
+                "@typescript-eslint/no-confusing-void-expression": [ "error" ],
+                "@typescript-eslint/no-unused-vars": ["error", { "args": "none", "caughtErrorsIgnorePattern": "^ignore" }],
+                "@typescript-eslint/no-empty-function": "error",
+                "@typescript-eslint/no-non-null-assertion": "off",
+                "@typescript-eslint/no-empty-interface": "off",
+                "@typescript-eslint/naming-convention": [ "warn",
+                    {
+                        "selector": [
+                            "class",
+                            "interface",
+                            "typeAlias",
+                            "enum",
+                            "typeParameter"
+                        ],
+                        "format": [ "PascalCase" ],
+                        "leadingUnderscore": "forbid",
+                        "trailingUnderscore": "forbid"
+                    },
+                    {
+                        "selector": [
+                            "function",
+                            "classProperty",
+                            "objectLiteralProperty",
+                            "typeProperty",
+                            "classMethod",
+                            "objectLiteralMethod",
+                            "typeMethod",
+                            "accessor"
+                        ],
+                        "format": [ "camelCase" ],
+                        "leadingUnderscore": "forbid",
+                        "trailingUnderscore": "allow"
+                    },
+                    {
+                        "selector": [
+                            "enumMember"
+                        ],
+                        "format": [ "PascalCase" ],
+                        "leadingUnderscore": "forbid",
+                        "trailingUnderscore": "forbid"
+                    },
+                    {
+                        "selector": [
+                            "variable"
+                        ],
+                        "format": [ "camelCase" ],
+                        "leadingUnderscore": "allow",
+                        "trailingUnderscore": "forbid"
+                    }
+                ]
+            }
+        }
     ]
 }

@@ -23,7 +23,7 @@ export interface QmlBacktrace
     fromFrame : number;
     toFrame : number;
     frames : QmlFrame[];
-};
+}
 
 export function isQmlBacktrace(value : any) : value is QmlBacktrace
 {
@@ -54,7 +54,7 @@ export interface QmlFrame
     line: number;
     debuggerFrame : boolean;
     scopes : QmlScope[];
-};
+}
 
 export function isQmlFrame(value : any) : value is QmlFrame
 {
@@ -90,7 +90,7 @@ export interface QmlScope
     index : number;
     type : number;
     object? : QmlVariable;
-};
+}
 
 export function isQmlScope(value : any) : value is QmlScope
 {
@@ -127,7 +127,7 @@ export interface QmlVariable
     value : any;
     ref? : number;
     properties? : QmlVariable[];
-};
+}
 
 export function isQmlVariable(value : any) : value is QmlVariable
 {

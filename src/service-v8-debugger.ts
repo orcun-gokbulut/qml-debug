@@ -1,7 +1,7 @@
-import Log  from '@qml-debug/log';
-import Packet from '@qml-debug/packet';
+import Log  from "@qml-debug/log";
+import Packet from "@qml-debug/packet";
 
-import { QmlDebugSession } from '@qml-debug/debug-adapter';
+import { QmlDebugSession } from "@qml-debug/debug-adapter";
 import {
     QmlRequest,
     QmlResponse,
@@ -47,17 +47,17 @@ import {
     isQmlEvent,
     isQmlMessage,
     isQmlResponse
-} from '@qml-debug/qml-messages';
+} from "@qml-debug/qml-messages";
 
 interface ServiceAwaitingRequest
 {
     seqId : number;
-    resolve: (value? : QmlResponse<any>) => void;
-    reject: (value : Error) => void;
+    resolve(value? : QmlResponse<any>): void;
+    reject(value : Error): void;
     timeoutId : NodeJS.Timeout;
-    responseCheckFunction: (value : any) => boolean;
+    responseCheckFunction(value : any): boolean;
     autoReject : boolean;
-};
+}
 
 export default class ServiceV8Debugger
 {
@@ -233,6 +233,7 @@ export default class ServiceV8Debugger
         const response = await this.makeRequest<QmlSetBreakpointArguments, QmlSetBreakpointResponse>(
             "setbreakpoint",
             {
+                ignoreCount: 0,
                 type: "scriptRegExp",
                 target: filenameParam,
                 line: lineParam,
@@ -468,4 +469,4 @@ export default class ServiceV8Debugger
             }
         );
     }
-};
+}
